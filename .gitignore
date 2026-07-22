@@ -42,6 +42,11 @@
 # Visual Studio cache directory
 .vs/
 
+# Visual Studio / VS Code auto-generated
+/.vscode/*
+!/.vscode/tasks.json
+!/.vscode/launch.json
+
 # Gradle cache directory
 .gradle/
 
@@ -105,3 +110,7 @@ InitTestScene*.unity*
 
 # Auto-generated scenes by play mode tests
 /[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
+
+# OS auto-generated
+.DS_Store
+Thumbs.db
