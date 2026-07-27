@@ -6,6 +6,8 @@ using UnityEngine;
 /// </summary>
 public class Collectible : MonoBehaviour
 {
+    [SerializeField] private GameObject splashPrefab;
+
     [Tooltip("How many points this collectible adds.")]
     public int scoreValue = 10;
 
@@ -30,11 +32,11 @@ public class Collectible : MonoBehaviour
         }
     }
 
-    private void OnTriggerEnter2D(Collider2D other)
+    private void OnTriggerEnter2D(Collider2D collision)
     {
         // Accept either Player tag or DragonController component as a valid player hit.
-        bool isPlayerTag = other.CompareTag("Player");
-        bool hasDragonController = other.GetComponent<DragonController>() != null;
+        bool isPlayerTag = collision.CompareTag("Player");
+        bool hasDragonController = collision.GetComponent<DragonController>() != null;
 
         if (!isPlayerTag && !hasDragonController)
         {
@@ -46,6 +48,12 @@ public class Collectible : MonoBehaviour
         {
             scoreManager.AddScore(scoreValue);
             Debug.Log($"Collectible: Added {scoreValue} points.");
+        }
+
+        // Spawn the splash effect at the collectible position if a prefab is assigned.
+        if (splashPrefab != null)
+        {
+            Instantiate(splashPrefab, transform.position, Quaternion.identity);
         }
 
         Debug.Log($"Collectible: '{name}' collected and destroyed.");

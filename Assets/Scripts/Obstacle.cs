@@ -6,6 +6,8 @@ using UnityEngine;
 /// </summary>
 public class Obstacle : MonoBehaviour
 {
+    [SerializeField] private GameObject splashPrefab;
+
     [Tooltip("How many points this obstacle subtracts.")]
     public int penaltyValue = 5;
 
@@ -30,11 +32,11 @@ public class Obstacle : MonoBehaviour
         }
     }
 
-    private void OnTriggerEnter2D(Collider2D other)
+    private void OnTriggerEnter2D(Collider2D collision)
     {
         // Accept either Player tag or DragonController component as a valid player hit.
-        bool isPlayerTag = other.CompareTag("Player");
-        bool hasDragonController = other.GetComponent<DragonController>() != null;
+        bool isPlayerTag = collision.CompareTag("Player");
+        bool hasDragonController = collision.GetComponent<DragonController>() != null;
 
         if (!isPlayerTag && !hasDragonController)
         {
@@ -46,6 +48,12 @@ public class Obstacle : MonoBehaviour
         {
             scoreManager.SubtractScore(penaltyValue);
             Debug.Log($"Obstacle: Subtracted {penaltyValue} points.");
+        }
+
+        // Spawn the splash effect at the obstacle position if a prefab is assigned.
+        if (splashPrefab != null)
+        {
+            Instantiate(splashPrefab, transform.position, Quaternion.identity);
         }
 
         Debug.Log($"Obstacle: '{name}' hit and destroyed.");

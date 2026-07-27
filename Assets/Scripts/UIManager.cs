@@ -16,6 +16,12 @@ public class UIManager : MonoBehaviour
     [Tooltip("Panel that appears when the game ends.")]
     public GameObject gameOverPanel;
 
+    [Tooltip("Exit button shown while the game is active.")]
+    public GameObject exitButton;
+
+    [Tooltip("Bottom UI container shown while the game is active.")]
+    public GameObject bottomContainer;
+
     [Tooltip("UI text that displays final score on the Game Over panel.")]
     public TextMeshProUGUI finalScoreText;
 
@@ -111,6 +117,17 @@ public class UIManager : MonoBehaviour
             Debug.LogWarning("UIManager: GameOver panel reference is missing.");
         }
 
+        // Hide optional gameplay UI elements at startup.
+        if (exitButton != null)
+        {
+            exitButton.SetActive(false);
+        }
+
+        if (bottomContainer != null)
+        {
+            bottomContainer.SetActive(false);
+        }
+
         RefreshScoreText();
         RefreshTimerText();
     }
@@ -133,6 +150,27 @@ public class UIManager : MonoBehaviour
 
     private void Update()
     {
+        UpdateGameUI();
+    }
+
+    /// <summary>
+    /// Updates runtime UI visibility and game-over presentation.
+    /// </summary>
+    private void UpdateGameUI()
+    {
+        // Show gameplay UI only while the game is active.
+        bool isGameActive = gameManager != null && gameManager.IsGameActive;
+
+        if (exitButton != null)
+        {
+            exitButton.SetActive(isGameActive);
+        }
+
+        if (bottomContainer != null)
+        {
+            bottomContainer.SetActive(isGameActive);
+        }
+
         // Keep timer text current while the scene is running.
         RefreshTimerText();
 
