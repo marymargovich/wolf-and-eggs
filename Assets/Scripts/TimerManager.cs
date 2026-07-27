@@ -16,11 +16,18 @@ public class TimerManager : MonoBehaviour
     /// </summary>
     public float TimeRemaining { get; private set; }
 
+    /// <summary>
+    /// Optional event fired whenever the formatted time string should be refreshed in UI.
+    /// string argument = current remaining time in MM:SS format.
+    /// </summary>
+    public System.Action<string> OnTimeChanged;
+
     private bool hasTriggeredEndGame;
 
     private void Awake()
     {
         TimeRemaining = Mathf.Max(0f, totalTime);
+        OnTimeChanged?.Invoke(GetFormattedTime());
 
         if (gameManager == null)
         {
@@ -65,6 +72,7 @@ public class TimerManager : MonoBehaviour
         }
 
         TimeRemaining -= Time.deltaTime;
+        OnTimeChanged?.Invoke(GetFormattedTime());
 
         if (TimeRemaining <= 0f)
         {
@@ -80,6 +88,7 @@ public class TimerManager : MonoBehaviour
     {
         TimeRemaining = Mathf.Max(0f, totalTime);
         hasTriggeredEndGame = false;
+        OnTimeChanged?.Invoke(GetFormattedTime());
         Debug.Log($"TimerManager: Timer reset to {TimeRemaining:F1} seconds.");
     }
 
@@ -103,6 +112,6 @@ public class TimerManager : MonoBehaviour
 
         hasTriggeredEndGame = true;
         Debug.Log("TimerManager: Time is up. Ending game.");
-        gameManager.EndGame();
+        gameManager.HandleTimerExpired();
     }
 }

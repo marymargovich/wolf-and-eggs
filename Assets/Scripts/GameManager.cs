@@ -19,10 +19,26 @@ public class GameManager : MonoBehaviour
     // Current state of the game. Other scripts can read this in the Inspector and via code.
     [SerializeField] private GameState currentState = GameState.Start;
 
+    [Tooltip("Maximum number of lives at the start of each game.")]
+    public int maxLives = 3;
+
+    [SerializeField] private UIManager uiManager;
+
     /// <summary>
     /// Public read-only access to the current game state.
     /// </summary>
     public GameState CurrentState => currentState;
+
+    /// <summary>
+    /// Current remaining lives. Read-only from outside this class.
+    /// </summary>
+    public int CurrentLives { get; private set; }
+
+    /// <summary>
+    /// Optional event fired whenever lives change.
+    /// int argument = current remaining lives.
+    /// </summary>
+    public System.Action<int> OnLivesChanged;
 
     /// <summary>
     /// True only while the game is actively running.
@@ -34,6 +50,12 @@ public class GameManager : MonoBehaviour
     {
         // Ensure the game starts in the Start state when the scene loads.
         currentState = GameState.Start;
+        CurrentLives = maxLives;
+
+        if (uiManager == null)
+        {
+            uiManager = FindAnyObjectByType<UIManager>();
+        }
     }
 
     /// <summary>
@@ -47,6 +69,8 @@ public class GameManager : MonoBehaviour
             return;
         }
 
+        CurrentLives = Mathf.Max(0, maxLives);
+        OnLivesChanged?.Invoke(CurrentLives);
         currentState = GameState.Playing;
         Debug.Log("Game started.");
     }
@@ -67,17 +91,52 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
+    /// Handles timer expiration and routes to a win result when the player still has lives.
+    /// </summary>
+    public void HandleTimerExpired()
+    {
+        if (!IsGameActive)
+        {
+            return;
+        }
+
+        if (CurrentLives > 0 && uiManager != null)
+        {
+            uiManager.ShowWinScreen();
+            return;
+        }
+
+        EndGame();
+    }
+
+    /// <summary>
     /// Applies damage to the player.
-    /// This project currently treats any damage as a game-over event.
+    /// Ends the game when lives reach zero.
     /// </summary>
     public void TakeDamage(int amount)
     {
+        if (!IsGameActive)
+        {
+            return;
+        }
+
         if (amount <= 0)
         {
             return;
         }
 
         Debug.Log($"GameManager: Player took {amount} damage.");
-        EndGame();
+        CurrentLives -= amount;
+        if (CurrentLives < 0)
+        {
+            CurrentLives = 0;
+        }
+
+        OnLivesChanged?.Invoke(CurrentLives);
+
+        if (CurrentLives <= 0)
+        {
+            EndGame();
+        }
     }
 }

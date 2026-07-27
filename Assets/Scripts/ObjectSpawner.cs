@@ -18,8 +18,20 @@ public class ObjectSpawner : MonoBehaviour
     [Tooltip("Weighted list of items that can be spawned. Add treasure and obstacle prefabs here.")]
     public List<SpawnItem> spawnItems = new List<SpawnItem>();
 
-    [Tooltip("Time between spawn attempts in seconds.")]
-    public float spawnInterval = 1f;
+    [Tooltip("Starting fall speed for spawned objects.")]
+    public float initialFallSpeed = 2f;
+
+    [Tooltip("Maximum fall speed reached at full difficulty.")]
+    public float maxFallSpeed = 6f;
+
+    [Tooltip("Starting time between spawn attempts in seconds.")]
+    public float initialSpawnInterval = 1.5f;
+
+    [Tooltip("Minimum time between spawn attempts at full difficulty.")]
+    public float minSpawnInterval = 0.6f;
+
+    [Tooltip("Seconds of active gameplay required to reach full difficulty.")]
+    public float difficultyRampDuration = 60f;
 
     [Tooltip("Y position where items appear.")]
     public float spawnY = 6f;
@@ -32,9 +44,16 @@ public class ObjectSpawner : MonoBehaviour
     public GameManager gameManager;
 
     private Coroutine spawnRoutine;
+    private float elapsedActiveGameTime;
+    private float currentFallSpeed;
+    private float currentSpawnInterval;
 
     private void Awake()
     {
+        elapsedActiveGameTime = 0f;
+        currentFallSpeed = initialFallSpeed;
+        currentSpawnInterval = initialSpawnInterval;
+
         if (gameManager == null)
         {
             gameManager = FindObjectOfType<GameManager>();
@@ -48,6 +67,29 @@ public class ObjectSpawner : MonoBehaviour
         {
             Debug.LogWarning("ObjectSpawner: GameManager not found. Spawner will wait until one exists.");
         }
+    }
+
+    private void Update()
+    {
+        if (gameManager == null)
+        {
+            gameManager = FindObjectOfType<GameManager>();
+            return;
+        }
+
+        // Increase difficulty only while gameplay is active.
+        if (gameManager.IsGameActive)
+        {
+            elapsedActiveGameTime += Time.deltaTime;
+        }
+
+        // Clamp progress from 0 to 1 based on active gameplay time.
+        float progressRatio = difficultyRampDuration > 0f
+            ? Mathf.Clamp01(elapsedActiveGameTime / difficultyRampDuration)
+            : 1f;
+
+        currentFallSpeed = Mathf.Lerp(initialFallSpeed, maxFallSpeed, progressRatio);
+        currentSpawnInterval = Mathf.Lerp(initialSpawnInterval, minSpawnInterval, progressRatio);
     }
 
     private void OnEnable()
@@ -70,14 +112,14 @@ public class ObjectSpawner : MonoBehaviour
     }
 
     /// <summary>
-    /// Repeatedly tries to spawn an item at a fixed interval.
+    /// Repeatedly tries to spawn an item at a difficulty-adjusted interval.
     /// Spawning happens only while the game is active.
     /// </summary>
     private IEnumerator SpawnLoop()
     {
         while (true)
         {
-            float waitTime = Mathf.Max(0.05f, spawnInterval);
+            float waitTime = Mathf.Max(0.05f, currentSpawnInterval);
             yield return new WaitForSeconds(waitTime);
 
             if (gameManager == null)
@@ -111,6 +153,13 @@ public class ObjectSpawner : MonoBehaviour
         Vector3 spawnPosition = new Vector3(randomX, spawnY, 0f);
 
         GameObject spawned = Instantiate(prefabToSpawn, spawnPosition, Quaternion.identity);
+        FallingObject fallingObject = spawned.GetComponent<FallingObject>();
+        if (fallingObject != null)
+        {
+            // Apply current difficulty speed to this spawned object.
+            fallingObject.fallSpeed = currentFallSpeed;
+        }
+
         Debug.Log($"ObjectSpawner: Spawned '{spawned.name}' at X={randomX:F2}, Y={spawnY:F2}.");
     }
 

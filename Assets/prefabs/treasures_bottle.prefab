@@ -171,5 +171,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Collectible
   splashPrefab: {fileID: 8266720218204555734, guid: 7d12bc6f3bea94264b31d43dafaf6fb6, type: 3}
-  scoreValue: 10
+  scoreValue: 30
   scoreManager: {fileID: 0}

@@ -1,5 +1,6 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// Updates score/time UI and controls the Game Over panel.
@@ -11,7 +12,7 @@ public class UIManager : MonoBehaviour
     public TextMeshProUGUI scoreText;
 
     [Tooltip("UI text that displays remaining time.")]
-    public TextMeshProUGUI timerText;
+    public TMP_Text timerText;
 
     [Tooltip("Panel that appears when the game ends.")]
     public GameObject gameOverPanel;
@@ -22,8 +23,14 @@ public class UIManager : MonoBehaviour
     [Tooltip("Bottom UI container shown while the game is active.")]
     public GameObject bottomContainer;
 
+    [Tooltip("Heart UI elements that represent remaining player lives.")]
+    public GameObject[] heartImages;
+
     [Tooltip("UI text that displays final score on the Game Over panel.")]
     public TextMeshProUGUI finalScoreText;
+
+    [SerializeField] private GameObject winPanel;
+    [SerializeField] private TMP_Text winScoreText;
 
     [Header("Manager References")]
     [Tooltip("Optional direct reference. If empty, this script will try to find ScoreManager automatically.")]
@@ -117,6 +124,12 @@ public class UIManager : MonoBehaviour
             Debug.LogWarning("UIManager: GameOver panel reference is missing.");
         }
 
+        // Keep custom result panels hidden at startup.
+        if (winPanel != null)
+        {
+            winPanel.SetActive(false);
+        }
+
         // Hide optional gameplay UI elements at startup.
         if (exitButton != null)
         {
@@ -129,7 +142,10 @@ public class UIManager : MonoBehaviour
         }
 
         RefreshScoreText();
-        RefreshTimerText();
+        if (timerManager != null)
+        {
+            UpdateTimerUI(timerManager.GetFormattedTime());
+        }
     }
 
     private void OnEnable()
@@ -138,6 +154,18 @@ public class UIManager : MonoBehaviour
         {
             scoreManager.OnScoreChanged += HandleScoreChanged;
         }
+
+        if (gameManager != null)
+        {
+            gameManager.OnLivesChanged += UpdateLivesUI;
+            UpdateLivesUI(gameManager.CurrentLives);
+        }
+
+        if (timerManager != null)
+        {
+            timerManager.OnTimeChanged += UpdateTimerUI;
+            UpdateTimerUI(timerManager.GetFormattedTime());
+        }
     }
 
     private void OnDisable()
@@ -145,6 +173,16 @@ public class UIManager : MonoBehaviour
         if (scoreManager != null)
         {
             scoreManager.OnScoreChanged -= HandleScoreChanged;
+        }
+
+        if (gameManager != null)
+        {
+            gameManager.OnLivesChanged -= UpdateLivesUI;
+        }
+
+        if (timerManager != null)
+        {
+            timerManager.OnTimeChanged -= UpdateTimerUI;
         }
     }
 
@@ -171,11 +209,8 @@ public class UIManager : MonoBehaviour
             bottomContainer.SetActive(isGameActive);
         }
 
-        // Keep timer text current while the scene is running.
-        RefreshTimerText();
-
-        // If the game has ended, show Game Over UI once.
-        if (!hasShownGameOver && gameManager != null && gameManager.CurrentState == GameManager.GameState.GameOver)
+        // If the game has ended, show default Game Over UI once when no custom result panel is active.
+        if (!hasShownGameOver && gameManager != null && gameManager.CurrentState == GameManager.GameState.GameOver && !IsCustomResultPanelActive())
         {
             ShowGameOver();
         }
@@ -208,20 +243,20 @@ public class UIManager : MonoBehaviour
             return;
         }
 
-        scoreText.text = $"Score: {scoreManager.CurrentScore}";
+        scoreText.text = $"{scoreManager.CurrentScore}";
     }
 
     /// <summary>
-    /// Updates the timer label text using TimerManager formatted output.
+    /// Updates the timer label text when TimerManager publishes a new time string.
     /// </summary>
-    private void RefreshTimerText()
+    private void UpdateTimerUI(string timeString)
     {
-        if (timerText == null || timerManager == null)
+        if (timerText == null)
         {
             return;
         }
 
-        timerText.text = $"Time: {timerManager.GetFormattedTime()}";
+        timerText.text = timeString;
     }
 
     /// <summary>
@@ -242,6 +277,92 @@ public class UIManager : MonoBehaviour
         }
 
         Debug.Log("UIManager: Game Over UI shown.");
+    }
+
+    /// <summary>
+    /// Shows the win screen and final score, then stops active gameplay.
+    /// </summary>
+    public void ShowWinScreen()
+    {
+        DisableGameplayForResult();
+        hasShownGameOver = true;
+
+        if (gameOverPanel != null)
+        {
+            gameOverPanel.SetActive(false);
+        }
+
+        if (winPanel != null)
+        {
+            winPanel.SetActive(true);
+        }
+
+        if (winScoreText != null && scoreManager != null)
+        {
+            winScoreText.text = "You win " + scoreManager.CurrentScore;
+        }
+
+        Debug.Log("UIManager: Win screen shown.");
+    }
+
+    /// <summary>
+    /// Reloads the currently active scene.
+    /// </summary>
+    public void RestartGame()
+    {
+        Time.timeScale = 1f;
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
+
+    /// <summary>
+    /// Updates heart icons to match current remaining lives.
+    /// </summary>
+    private void UpdateLivesUI(int currentLives)
+    {
+        if (heartImages == null || heartImages.Length == 0)
+        {
+            return;
+        }
+
+        for (int i = 0; i < heartImages.Length; i++)
+        {
+            if (heartImages[i] == null)
+            {
+                continue;
+            }
+
+            heartImages[i].SetActive(i < currentLives);
+        }
+    }
+
+    /// <summary>
+    /// Ends active gameplay and hides gameplay-only UI controls.
+    /// </summary>
+    private void DisableGameplayForResult()
+    {
+        if (gameManager != null && gameManager.IsGameActive)
+        {
+            gameManager.EndGame();
+        }
+
+        if (exitButton != null)
+        {
+            exitButton.SetActive(false);
+        }
+
+        if (bottomContainer != null)
+        {
+            bottomContainer.SetActive(false);
+        }
+    }
+
+    /// <summary>
+    /// Returns true when a custom result panel is visible.
+    /// </summary>
+    private bool IsCustomResultPanelActive()
+    {
+        bool winVisible = winPanel != null && winPanel.activeSelf;
+        return winVisible;
     }
 
     /// <summary>
