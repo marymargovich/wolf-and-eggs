@@ -46,7 +46,7 @@ public class Collectible : MonoBehaviour
         // If ScoreManager exists, add points directly.
         if (scoreManager != null)
         {
-            scoreManager.AddScore(scoreValue);
+            scoreManager.AddCollectibleHit(scoreValue);
             Debug.Log($"Collectible: Added {scoreValue} points.");
         }
 

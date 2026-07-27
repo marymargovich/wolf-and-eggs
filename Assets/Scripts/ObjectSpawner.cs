@@ -1,5 +1,13 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
+
+[System.Serializable]
+public class SpawnItem
+{
+    public GameObject prefab;
+    public int weight = 100;
+}
 
 /// <summary>
 /// Spawns random falling item prefabs while the game is active.
@@ -7,8 +15,8 @@ using UnityEngine;
 public class ObjectSpawner : MonoBehaviour
 {
     [Header("Spawn Setup")]
-    [Tooltip("Prefabs that can be spawned. Add treasure and obstacle prefabs here.")]
-    public GameObject[] itemPrefabs;
+    [Tooltip("Weighted list of items that can be spawned. Add treasure and obstacle prefabs here.")]
+    public List<SpawnItem> spawnItems = new List<SpawnItem>();
 
     [Tooltip("Time between spawn attempts in seconds.")]
     public float spawnInterval = 1f;
@@ -83,27 +91,19 @@ public class ObjectSpawner : MonoBehaviour
                 continue;
             }
 
-            SpawnOne();
+            SpawnObject();
         }
     }
 
     /// <summary>
-    /// Spawns one random prefab from the itemPrefabs list.
+    /// Spawns one random prefab based on configured item weights.
     /// </summary>
-    private void SpawnOne()
+    private void SpawnObject()
     {
-        if (itemPrefabs == null || itemPrefabs.Length == 0)
-        {
-            Debug.LogWarning("ObjectSpawner: No itemPrefabs assigned. Cannot spawn items.");
-            return;
-        }
-
-        int randomIndex = Random.Range(0, itemPrefabs.Length);
-        GameObject prefabToSpawn = itemPrefabs[randomIndex];
-
+        GameObject prefabToSpawn = GetRandomSpawnItem();
         if (prefabToSpawn == null)
         {
-            Debug.LogWarning($"ObjectSpawner: itemPrefabs[{randomIndex}] is null.");
+            Debug.LogWarning("ObjectSpawner: No valid weighted spawn item found. Cannot spawn items.");
             return;
         }
 
@@ -112,5 +112,51 @@ public class ObjectSpawner : MonoBehaviour
 
         GameObject spawned = Instantiate(prefabToSpawn, spawnPosition, Quaternion.identity);
         Debug.Log($"ObjectSpawner: Spawned '{spawned.name}' at X={randomX:F2}, Y={spawnY:F2}.");
+    }
+
+    /// <summary>
+    /// Selects a prefab using weighted random choice from spawnItems.
+    /// </summary>
+    private GameObject GetRandomSpawnItem()
+    {
+        if (spawnItems == null || spawnItems.Count == 0)
+        {
+            return null;
+        }
+
+        int totalWeight = 0;
+        foreach (SpawnItem item in spawnItems)
+        {
+            if (item == null)
+            {
+                continue;
+            }
+
+            totalWeight += item.weight;
+        }
+
+        if (totalWeight <= 0)
+        {
+            return null;
+        }
+
+        // Random.Range with int uses an inclusive minimum and exclusive maximum.
+        int randomWeight = Random.Range(0, totalWeight);
+
+        foreach (SpawnItem item in spawnItems)
+        {
+            if (item == null)
+            {
+                continue;
+            }
+
+            randomWeight -= item.weight;
+            if (randomWeight < 0)
+            {
+                return item.prefab;
+            }
+        }
+
+        return null;
     }
 }

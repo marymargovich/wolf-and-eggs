@@ -65,4 +65,19 @@ public class GameManager : MonoBehaviour
         currentState = GameState.GameOver;
         Debug.Log("Game over.");
     }
+
+    /// <summary>
+    /// Applies damage to the player.
+    /// This project currently treats any damage as a game-over event.
+    /// </summary>
+    public void TakeDamage(int amount)
+    {
+        if (amount <= 0)
+        {
+            return;
+        }
+
+        Debug.Log($"GameManager: Player took {amount} damage.");
+        EndGame();
+    }
 }

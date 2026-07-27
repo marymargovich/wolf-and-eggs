@@ -6,6 +6,8 @@ using UnityEngine;
 /// </summary>
 public class ScoreManager : MonoBehaviour
 {
+    private int comboCount = 0;
+
     /// <summary>
     /// Current player score. Read-only from outside this class.
     /// </summary>
@@ -20,6 +22,7 @@ public class ScoreManager : MonoBehaviour
     private void Awake()
     {
         CurrentScore = 0;
+        comboCount = 0;
         Debug.Log("ScoreManager: Initialized with score = 0.");
     }
 
@@ -37,6 +40,30 @@ public class ScoreManager : MonoBehaviour
         CurrentScore += points;
         Debug.Log($"ScoreManager: Added {points} points. New score = {CurrentScore}.");
         OnScoreChanged?.Invoke(CurrentScore);
+    }
+
+    /// <summary>
+    /// Adds points for a collectible hit and tracks combo streak progress.
+    /// </summary>
+    public void AddCollectibleHit(int points)
+    {
+        AddScore(points);
+        comboCount += 1;
+
+        if (comboCount >= 5)
+        {
+            AddScore(20);
+            Debug.Log("ScoreManager: Combo bonus awarded (+20). Combo streak reset.");
+            comboCount = 0;
+        }
+    }
+
+    /// <summary>
+    /// Resets the current collectible combo streak.
+    /// </summary>
+    public void ResetCombo()
+    {
+        comboCount = 0;
     }
 
     /// <summary>
