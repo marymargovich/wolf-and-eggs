@@ -6,6 +6,8 @@ using UnityEngine;
 /// </summary>
 public class ScoreManager : MonoBehaviour
 {
+    [SerializeField] private int comboBonus = 100;
+
     private int comboCount = 0;
 
     /// <summary>
@@ -18,6 +20,11 @@ public class ScoreManager : MonoBehaviour
     /// int argument = new score value.
     /// </summary>
     public event Action<int> OnScoreChanged;
+
+    /// <summary>
+    /// Optional event fired whenever a combo bonus is triggered.
+    /// </summary>
+    public System.Action OnComboTriggered;
 
     private void Awake()
     {
@@ -52,8 +59,9 @@ public class ScoreManager : MonoBehaviour
 
         if (comboCount >= 5)
         {
-            AddScore(20);
-            Debug.Log("ScoreManager: Combo bonus awarded (+20). Combo streak reset.");
+            AddScore(comboBonus);
+            OnComboTriggered?.Invoke();
+            Debug.Log($"ScoreManager: Combo bonus awarded (+{comboBonus}). Combo streak reset.");
             comboCount = 0;
         }
     }

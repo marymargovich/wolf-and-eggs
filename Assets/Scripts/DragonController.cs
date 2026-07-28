@@ -13,6 +13,9 @@ public class DragonController : MonoBehaviour
     [Tooltip("How far the dragon can move left/right from its start X position.")]
     public float xClamp = 7f;
 
+    [Tooltip("How much the dragon can overlap past the visible screen edge.")]
+    public float edgeOverlapMargin = 0.25f;
+
     [Header("References (Optional)")]
     [Tooltip("If left empty, the script will try to find GameManager automatically.")]
     public GameManager gameManager;
@@ -30,7 +33,6 @@ public class DragonController : MonoBehaviour
     [Tooltip("Animator bool parameter name for movement state.")]
     public string isMovingParameter = "IsMoving";
 
-    private float startX;
     private bool lastMovingState;
     private int lastFacingDirection;
     private bool hasSpeedParameter;
@@ -38,8 +40,6 @@ public class DragonController : MonoBehaviour
 
     private void Awake()
     {
-        startX = transform.position.x;
-
         // Auto-find GameManager if it was not assigned in the Inspector.
         if (gameManager == null)
         {
@@ -88,9 +88,10 @@ public class DragonController : MonoBehaviour
         float moveStep = horizontalInput * speed * Time.deltaTime;
         transform.Translate(moveStep, 0f, 0f);
 
-        // Clamp position so the dragon stays within horizontal bounds.
+        // Clamp position using camera screen bounds so the dragon stays visible.
         Vector3 position = transform.position;
-        position.x = Mathf.Clamp(position.x, startX - xClamp, startX + xClamp);
+        float clampedX = GetClampedX(position.x);
+        position.x = clampedX;
         transform.position = position;
 
         UpdateDirection(horizontalInput);
@@ -192,5 +193,26 @@ public class DragonController : MonoBehaviour
 
         Debug.LogWarning($"DragonController: Animator parameter '{parameterName}' ({parameterType}) was not found.");
         return false;
+    }
+
+    /// <summary>
+    /// Returns X position clamped to the camera view with a small overlap margin.
+    /// Falls back to legacy xClamp when a camera is not available.
+    /// </summary>
+    private float GetClampedX(float targetX)
+    {
+        Camera mainCamera = Camera.main;
+        if (mainCamera == null)
+        {
+            return Mathf.Clamp(targetX, -xClamp, xClamp);
+        }
+
+        float distanceToCamera = Mathf.Abs(mainCamera.transform.position.z - transform.position.z);
+        Vector3 leftEdge = mainCamera.ViewportToWorldPoint(new Vector3(0f, 0.5f, distanceToCamera));
+        Vector3 rightEdge = mainCamera.ViewportToWorldPoint(new Vector3(1f, 0.5f, distanceToCamera));
+
+        float minX = leftEdge.x - edgeOverlapMargin;
+        float maxX = rightEdge.x + edgeOverlapMargin;
+        return Mathf.Clamp(targetX, minX, maxX);
     }
 }

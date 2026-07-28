@@ -39,6 +39,9 @@ public class ObjectSpawner : MonoBehaviour
     [Tooltip("Spawns at a random X between -spawnRangeX and +spawnRangeX.")]
     public float spawnRangeX = 7f;
 
+    [Tooltip("Horizontal padding from camera edges to keep spawns inside the visible view.")]
+    public float spawnEdgePadding = 0.15f;
+
     [Header("References (Optional)")]
     [Tooltip("If left empty, this script will try to find GameManager automatically.")]
     public GameManager gameManager;
@@ -47,12 +50,15 @@ public class ObjectSpawner : MonoBehaviour
     private float elapsedActiveGameTime;
     private float currentFallSpeed;
     private float currentSpawnInterval;
+    private float minSpawnX;
+    private float maxSpawnX;
 
     private void Awake()
     {
         elapsedActiveGameTime = 0f;
         currentFallSpeed = initialFallSpeed;
         currentSpawnInterval = initialSpawnInterval;
+        UpdateSpawnBoundsFromCamera();
 
         if (gameManager == null)
         {
@@ -90,6 +96,7 @@ public class ObjectSpawner : MonoBehaviour
 
         currentFallSpeed = Mathf.Lerp(initialFallSpeed, maxFallSpeed, progressRatio);
         currentSpawnInterval = Mathf.Lerp(initialSpawnInterval, minSpawnInterval, progressRatio);
+        UpdateSpawnBoundsFromCamera();
     }
 
     private void OnEnable()
@@ -149,7 +156,7 @@ public class ObjectSpawner : MonoBehaviour
             return;
         }
 
-        float randomX = Random.Range(-spawnRangeX, spawnRangeX);
+        float randomX = Random.Range(minSpawnX, maxSpawnX);
         Vector3 spawnPosition = new Vector3(randomX, spawnY, 0f);
 
         GameObject spawned = Instantiate(prefabToSpawn, spawnPosition, Quaternion.identity);
@@ -161,6 +168,36 @@ public class ObjectSpawner : MonoBehaviour
         }
 
         Debug.Log($"ObjectSpawner: Spawned '{spawned.name}' at X={randomX:F2}, Y={spawnY:F2}.");
+    }
+
+    /// <summary>
+    /// Updates horizontal spawn bounds from camera view so objects stay on-screen.
+    /// </summary>
+    private void UpdateSpawnBoundsFromCamera()
+    {
+        Camera mainCamera = Camera.main;
+        if (mainCamera == null)
+        {
+            minSpawnX = -spawnRangeX;
+            maxSpawnX = spawnRangeX;
+            return;
+        }
+
+        float distanceToCamera = Mathf.Abs(mainCamera.transform.position.z);
+        Vector3 leftEdge = mainCamera.ViewportToWorldPoint(new Vector3(0f, 0.5f, distanceToCamera));
+        Vector3 rightEdge = mainCamera.ViewportToWorldPoint(new Vector3(1f, 0.5f, distanceToCamera));
+
+        minSpawnX = leftEdge.x + spawnEdgePadding;
+        maxSpawnX = rightEdge.x - spawnEdgePadding;
+
+        if (maxSpawnX <= minSpawnX)
+        {
+            float centerX = (leftEdge.x + rightEdge.x) * 0.5f;
+            minSpawnX = centerX;
+            maxSpawnX = centerX;
+        }
+
+        spawnRangeX = Mathf.Max(0f, (maxSpawnX - minSpawnX) * 0.5f);
     }
 
     /// <summary>

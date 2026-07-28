@@ -1,6 +1,8 @@
 using TMPro;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 /// <summary>
 /// Updates score/time UI and controls the Game Over panel.
@@ -23,6 +25,8 @@ public class UIManager : MonoBehaviour
     [Tooltip("Bottom UI container shown while the game is active.")]
     public GameObject bottomContainer;
 
+    public Button infoButton;
+
     [Tooltip("Heart UI elements that represent remaining player lives.")]
     public GameObject[] heartImages;
 
@@ -31,6 +35,10 @@ public class UIManager : MonoBehaviour
 
     [SerializeField] private GameObject winPanel;
     [SerializeField] private TMP_Text winScoreText;
+    [SerializeField] private GameObject fullRulesPanel;
+    [SerializeField] private GameObject miniRulesPanel;
+    [SerializeField] private GameObject comboPopUpPanel;
+    [SerializeField] private float comboPopUpDuration = 0.8f;
 
     [Header("Manager References")]
     [Tooltip("Optional direct reference. If empty, this script will try to find ScoreManager automatically.")]
@@ -43,6 +51,9 @@ public class UIManager : MonoBehaviour
     public GameManager gameManager;
 
     private bool hasShownGameOver;
+    private bool miniRulesPausedGameplay;
+    private Coroutine comboPopUpRoutine;
+    private GameManager.GameState? lastKnownState;
 
     private void Awake()
     {
@@ -130,6 +141,21 @@ public class UIManager : MonoBehaviour
             winPanel.SetActive(false);
         }
 
+        if (fullRulesPanel != null)
+        {
+            fullRulesPanel.SetActive(false);
+        }
+
+        if (miniRulesPanel != null)
+        {
+            miniRulesPanel.SetActive(false);
+        }
+
+        if (comboPopUpPanel != null)
+        {
+            comboPopUpPanel.SetActive(false);
+        }
+
         // Hide optional gameplay UI elements at startup.
         if (exitButton != null)
         {
@@ -166,6 +192,11 @@ public class UIManager : MonoBehaviour
             timerManager.OnTimeChanged += UpdateTimerUI;
             UpdateTimerUI(timerManager.GetFormattedTime());
         }
+
+        if (scoreManager != null)
+        {
+            scoreManager.OnComboTriggered += HandleComboTriggered;
+        }
     }
 
     private void OnDisable()
@@ -184,6 +215,28 @@ public class UIManager : MonoBehaviour
         {
             timerManager.OnTimeChanged -= UpdateTimerUI;
         }
+
+        if (scoreManager != null)
+        {
+            scoreManager.OnComboTriggered -= HandleComboTriggered;
+        }
+
+        if (comboPopUpRoutine != null)
+        {
+            StopCoroutine(comboPopUpRoutine);
+            comboPopUpRoutine = null;
+        }
+
+        if (comboPopUpPanel != null)
+        {
+            comboPopUpPanel.SetActive(false);
+        }
+
+        if (miniRulesPausedGameplay)
+        {
+            Time.timeScale = 1f;
+            miniRulesPausedGameplay = false;
+        }
     }
 
     private void Update()
@@ -196,6 +249,11 @@ public class UIManager : MonoBehaviour
     /// </summary>
     private void UpdateGameUI()
     {
+        if (gameManager != null)
+        {
+            HandleStateSpecificPanels(gameManager.CurrentState);
+        }
+
         // Show gameplay UI only while the game is active.
         bool isGameActive = gameManager != null && gameManager.IsGameActive;
 
@@ -287,6 +345,8 @@ public class UIManager : MonoBehaviour
         DisableGameplayForResult();
         hasShownGameOver = true;
 
+        CloseMiniRulesPanel();
+
         if (gameOverPanel != null)
         {
             gameOverPanel.SetActive(false);
@@ -299,10 +359,55 @@ public class UIManager : MonoBehaviour
 
         if (winScoreText != null && scoreManager != null)
         {
-            winScoreText.text = "You win " + scoreManager.CurrentScore;
+            winScoreText.text = scoreManager.CurrentScore.ToString();
         }
 
         Debug.Log("UIManager: Win screen shown.");
+    }
+
+    /// <summary>
+    /// Opens the appropriate rules panel for the current game state.
+    /// Bind this method to the Info button.
+    /// </summary>
+    public void OpenInfoPanel()
+    {
+        if (gameManager == null)
+        {
+            return;
+        }
+
+        bool isWinPanelActive = winPanel != null && winPanel.activeSelf;
+
+        if (gameManager.CurrentState == GameManager.GameState.Playing || isWinPanelActive)
+        {
+            OpenMiniRulesPanel();
+            return;
+        }
+
+        OpenFullRulesPanel();
+    }
+
+    /// <summary>
+    /// Closes any open rules panel and resumes gameplay time when needed.
+    /// </summary>
+    public void CloseRulesPanels()
+    {
+        if (fullRulesPanel != null)
+        {
+            fullRulesPanel.SetActive(false);
+        }
+
+        if (miniRulesPanel != null)
+        {
+            miniRulesPanel.SetActive(false);
+        }
+
+        if (gameManager != null && gameManager.CurrentState == GameManager.GameState.Playing)
+        {
+            Time.timeScale = 1f;
+        }
+
+        miniRulesPausedGameplay = false;
     }
 
     /// <summary>
@@ -354,6 +459,106 @@ public class UIManager : MonoBehaviour
         {
             bottomContainer.SetActive(false);
         }
+    }
+
+    /// <summary>
+    /// Opens the full rules panel.
+    /// </summary>
+    private void OpenFullRulesPanel()
+    {
+        if (fullRulesPanel != null)
+        {
+            fullRulesPanel.SetActive(true);
+        }
+    }
+
+    /// <summary>
+    /// Opens the mini rules panel and pauses gameplay.
+    /// </summary>
+    private void OpenMiniRulesPanel()
+    {
+        if (miniRulesPanel == null)
+        {
+            return;
+        }
+
+        miniRulesPanel.SetActive(true);
+        Time.timeScale = 0f;
+        miniRulesPausedGameplay = true;
+    }
+
+    /// <summary>
+    /// Closes the mini rules panel and restores gameplay time.
+    /// </summary>
+    private void CloseMiniRulesPanel()
+    {
+        if (miniRulesPanel != null)
+        {
+            miniRulesPanel.SetActive(false);
+        }
+
+        if (miniRulesPausedGameplay)
+        {
+            Time.timeScale = 1f;
+            miniRulesPausedGameplay = false;
+        }
+    }
+
+    /// <summary>
+    /// Applies panel rules for Start, Playing, and GameOver states.
+    /// </summary>
+    private void HandleStateSpecificPanels(GameManager.GameState currentState)
+    {
+        if (!lastKnownState.HasValue || lastKnownState.Value != currentState)
+        {
+            if (currentState == GameManager.GameState.Start)
+            {
+                OpenFullRulesPanel();
+            }
+
+            if (currentState == GameManager.GameState.Playing && fullRulesPanel != null)
+            {
+                fullRulesPanel.SetActive(false);
+            }
+
+            if (infoButton != null)
+            {
+                bool showInfoButton = currentState == GameManager.GameState.Playing;
+                infoButton.gameObject.SetActive(showInfoButton);
+            }
+
+            lastKnownState = currentState;
+        }
+    }
+
+    /// <summary>
+    /// Shows combo popup for a short duration when combo bonus is triggered.
+    /// </summary>
+    private void HandleComboTriggered()
+    {
+        if (comboPopUpPanel == null)
+        {
+            return;
+        }
+
+        if (comboPopUpRoutine != null)
+        {
+            StopCoroutine(comboPopUpRoutine);
+        }
+
+        comboPopUpRoutine = StartCoroutine(ShowComboPopUpRoutine());
+    }
+
+    /// <summary>
+    /// Displays combo popup then hides it automatically.
+    /// </summary>
+    private IEnumerator ShowComboPopUpRoutine()
+    {
+        comboPopUpPanel.SetActive(true);
+        float displayDuration = Mathf.Max(0.1f, comboPopUpDuration);
+        yield return new WaitForSecondsRealtime(displayDuration);
+        comboPopUpPanel.SetActive(false);
+        comboPopUpRoutine = null;
     }
 
     /// <summary>

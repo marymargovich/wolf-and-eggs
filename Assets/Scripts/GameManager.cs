@@ -91,7 +91,7 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Handles timer expiration and routes to a win result when the player still has lives.
+    /// Handles timer expiration and routes to the results panel.
     /// </summary>
     public void HandleTimerExpired()
     {
@@ -100,18 +100,12 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-        if (CurrentLives > 0 && uiManager != null)
-        {
-            uiManager.ShowWinScreen();
-            return;
-        }
-
-        EndGame();
+        ShowResultsPanel();
     }
 
     /// <summary>
     /// Applies damage to the player.
-    /// Ends the game when lives reach zero.
+    /// Shows the results panel when lives reach zero.
     /// </summary>
     public void TakeDamage(int amount)
     {
@@ -136,7 +130,28 @@ public class GameManager : MonoBehaviour
 
         if (CurrentLives <= 0)
         {
-            EndGame();
+            ShowResultsPanel();
         }
+    }
+
+    /// <summary>
+    /// Shows the results panel and stops active gameplay.
+    /// Falls back to EndGame when UIManager is unavailable.
+    /// </summary>
+    private void ShowResultsPanel()
+    {
+        if (uiManager == null)
+        {
+            uiManager = FindAnyObjectByType<UIManager>();
+        }
+
+        if (uiManager != null)
+        {
+            uiManager.ShowWinScreen();
+            return;
+        }
+
+        Debug.LogWarning("GameManager: UIManager not found. Falling back to EndGame without result panel.");
+        EndGame();
     }
 }
