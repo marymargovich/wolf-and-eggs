@@ -62,7 +62,7 @@ public class ObjectSpawner : MonoBehaviour
 
         if (gameManager == null)
         {
-            gameManager = FindObjectOfType<GameManager>();
+            gameManager = FindAnyObjectByType<GameManager>();
         }
 
         if (gameManager != null)
@@ -79,7 +79,7 @@ public class ObjectSpawner : MonoBehaviour
     {
         if (gameManager == null)
         {
-            gameManager = FindObjectOfType<GameManager>();
+            gameManager = FindAnyObjectByType<GameManager>();
             return;
         }
 
@@ -131,7 +131,7 @@ public class ObjectSpawner : MonoBehaviour
 
             if (gameManager == null)
             {
-                gameManager = FindObjectOfType<GameManager>();
+                gameManager = FindAnyObjectByType<GameManager>();
                 continue;
             }
 

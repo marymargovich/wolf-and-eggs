@@ -21,7 +21,7 @@ public class FallingObject : MonoBehaviour
     {
         if (gameManager == null)
         {
-            gameManager = FindObjectOfType<GameManager>();
+            gameManager = FindAnyObjectByType<GameManager>();
         }
 
         if (gameManager != null)

@@ -420,6 +420,15 @@ public class UIManager : MonoBehaviour
     }
 
     /// <summary>
+    /// Exits active gameplay and loads the initial scene.
+    /// </summary>
+    public void ExitToMainMenu()
+    {
+        Time.timeScale = 1f;
+        SceneManager.LoadScene(0);
+    }
+
+    /// <summary>
     /// Updates heart icons to match current remaining lives.
     /// </summary>
     private void UpdateLivesUI(int currentLives)

@@ -1,4 +1,7 @@
 using UnityEngine;
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
 
 /// <summary>
 /// Controls the dragon's horizontal movement for Little Dragon Treasure Hunt.
@@ -43,7 +46,7 @@ public class DragonController : MonoBehaviour
         // Auto-find GameManager if it was not assigned in the Inspector.
         if (gameManager == null)
         {
-            gameManager = FindObjectOfType<GameManager>();
+            gameManager = FindAnyObjectByType<GameManager>();
         }
 
         if (gameManager != null)
@@ -84,9 +87,24 @@ public class DragonController : MonoBehaviour
 
         float horizontalInput = Input.GetAxisRaw("Horizontal");
 
-        // Translate along X-axis only.
-        float moveStep = horizontalInput * speed * Time.deltaTime;
-        transform.Translate(moveStep, 0f, 0f);
+        // Prefer pointer/touch hold input; fall back to legacy keyboard input otherwise.
+        if (TryGetPointerTargetWorldX(out float pointerTargetWorldX))
+        {
+            Vector3 currentPos = transform.position;
+            float clampedTargetX = GetClampedX(pointerTargetWorldX);
+            float newX = Mathf.MoveTowards(currentPos.x, clampedTargetX, speed * Time.deltaTime);
+            float deltaX = newX - currentPos.x;
+
+            horizontalInput = Mathf.Abs(deltaX) > 0.0001f ? Mathf.Sign(deltaX) : 0f;
+            currentPos.x = newX;
+            transform.position = currentPos;
+        }
+        else
+        {
+            // Translate along X-axis only.
+            float moveStep = horizontalInput * speed * Time.deltaTime;
+            transform.Translate(moveStep, 0f, 0f);
+        }
 
         // Clamp position using camera screen bounds so the dragon stays visible.
         Vector3 position = transform.position;
@@ -105,6 +123,57 @@ public class DragonController : MonoBehaviour
             Debug.Log(isMoving ? "DragonController: Dragon started moving." : "DragonController: Dragon stopped moving.");
             lastMovingState = isMoving;
         }
+    }
+
+    /// <summary>
+    /// Returns true when pointer/touch or left mouse button is held and provides target world X.
+    /// </summary>
+    private bool TryGetPointerTargetWorldX(out float targetWorldX)
+    {
+        targetWorldX = 0f;
+
+        Camera mainCamera = Camera.main;
+        if (mainCamera == null)
+        {
+            return false;
+        }
+
+        Vector2 screenPosition;
+        if (!TryGetHeldPointerScreenPosition(out screenPosition))
+        {
+            return false;
+        }
+
+        float distanceToCamera = Mathf.Abs(mainCamera.transform.position.z - transform.position.z);
+        Vector3 pointerScreenPoint = new Vector3(screenPosition.x, screenPosition.y, distanceToCamera);
+        Vector3 worldPoint = mainCamera.ScreenToWorldPoint(pointerScreenPoint);
+        targetWorldX = worldPoint.x;
+        return true;
+    }
+
+    /// <summary>
+    /// Gets held pointer screen position from Input System first, then legacy mouse fallback.
+    /// </summary>
+    private bool TryGetHeldPointerScreenPosition(out Vector2 screenPosition)
+    {
+        screenPosition = default;
+
+#if ENABLE_INPUT_SYSTEM
+        if (Pointer.current != null && Pointer.current.press.isPressed)
+        {
+            screenPosition = Pointer.current.position.ReadValue();
+            return true;
+        }
+#endif
+
+        if (Input.GetMouseButton(0))
+        {
+            Vector3 mousePosition = Input.mousePosition;
+            screenPosition = new Vector2(mousePosition.x, mousePosition.y);
+            return true;
+        }
+
+        return false;
     }
 
     /// <summary>
