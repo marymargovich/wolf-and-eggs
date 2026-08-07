@@ -21,15 +21,6 @@ public class Collectible : MonoBehaviour
         {
             scoreManager = FindAnyObjectByType<ScoreManager>();
         }
-
-        if (scoreManager != null)
-        {
-            Debug.Log("Collectible: ScoreManager found.");
-        }
-        else
-        {
-            Debug.LogWarning("Collectible: ScoreManager not found. Collectible will still be destroyed on pickup.");
-        }
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
@@ -47,7 +38,6 @@ public class Collectible : MonoBehaviour
         if (scoreManager != null)
         {
             scoreManager.AddCollectibleHit(scoreValue);
-            Debug.Log($"Collectible: Added {scoreValue} points.");
         }
 
         if (AudioManager.Instance != null)
@@ -61,7 +51,6 @@ public class Collectible : MonoBehaviour
             Instantiate(splashPrefab, transform.position, Quaternion.identity);
         }
 
-        Debug.Log($"Collectible: '{name}' collected and destroyed.");
         Destroy(gameObject);
     }
 }

@@ -23,15 +23,6 @@ public class FallingObject : MonoBehaviour
         {
             gameManager = FindAnyObjectByType<GameManager>();
         }
-
-        if (gameManager != null)
-        {
-            Debug.Log($"FallingObject: GameManager found for '{name}'.");
-        }
-        else
-        {
-            Debug.LogWarning($"FallingObject: GameManager not found for '{name}'. Object will not move until GameManager exists.");
-        }
     }
 
     private void Update()
@@ -47,7 +38,6 @@ public class FallingObject : MonoBehaviour
         // Remove object when it falls below the cleanup line.
         if (transform.position.y < destroyY)
         {
-            Debug.Log($"FallingObject: Destroying '{name}' below destroyY ({destroyY}).");
             Destroy(gameObject);
         }
     }

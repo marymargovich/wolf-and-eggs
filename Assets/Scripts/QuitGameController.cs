@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 /// <summary>
 /// Handles application quit requests from UI events.
@@ -19,9 +18,9 @@ public class QuitGameController : MonoBehaviour
         // Stop Play Mode when running inside the Unity Editor.
         UnityEditor.EditorApplication.isPlaying = false;
 #else
-        // Restore time scale and return to the initial scene in player builds.
+        // Restore time scale and quit in player builds.
         Time.timeScale = 1f;
-        SceneManager.LoadScene(0);
+        Application.Quit();
 #endif
     }
 }

@@ -40,9 +40,12 @@ public class DragonController : MonoBehaviour
     private int lastFacingDirection;
     private bool hasSpeedParameter;
     private bool hasIsMovingParameter;
+    private Camera cachedMainCamera;
 
     private void Awake()
     {
+        cachedMainCamera = Camera.main;
+
         // Auto-find GameManager if it was not assigned in the Inspector.
         if (gameManager == null)
         {
@@ -132,7 +135,13 @@ public class DragonController : MonoBehaviour
     {
         targetWorldX = 0f;
 
-        Camera mainCamera = Camera.main;
+        Camera mainCamera = cachedMainCamera;
+        if (mainCamera == null)
+        {
+            cachedMainCamera = Camera.main;
+            mainCamera = cachedMainCamera;
+        }
+
         if (mainCamera == null)
         {
             return false;
@@ -270,7 +279,13 @@ public class DragonController : MonoBehaviour
     /// </summary>
     private float GetClampedX(float targetX)
     {
-        Camera mainCamera = Camera.main;
+        Camera mainCamera = cachedMainCamera;
+        if (mainCamera == null)
+        {
+            cachedMainCamera = Camera.main;
+            mainCamera = cachedMainCamera;
+        }
+
         if (mainCamera == null)
         {
             return Mathf.Clamp(targetX, -xClamp, xClamp);

@@ -19,9 +19,6 @@ public class GameManager : MonoBehaviour
     // Current state of the game. Other scripts can read this in the Inspector and via code.
     [SerializeField] private GameState currentState = GameState.Start;
 
-    [Tooltip("Maximum number of lives at the start of each game.")]
-    public int maxLives = 3;
-
     [SerializeField] private UIManager uiManager;
 
     /// <summary>
@@ -30,15 +27,9 @@ public class GameManager : MonoBehaviour
     public GameState CurrentState => currentState;
 
     /// <summary>
-    /// Current remaining lives. Read-only from outside this class.
+    /// Optional event fired whenever game state changes.
     /// </summary>
-    public int CurrentLives { get; private set; }
-
-    /// <summary>
-    /// Optional event fired whenever lives change.
-    /// int argument = current remaining lives.
-    /// </summary>
-    public System.Action<int> OnLivesChanged;
+    public System.Action<GameState> OnGameStateChanged;
 
     /// <summary>
     /// True only while the game is actively running.
@@ -50,7 +41,6 @@ public class GameManager : MonoBehaviour
     {
         // Ensure the game starts in the Start state when the scene loads.
         currentState = GameState.Start;
-        CurrentLives = maxLives;
 
         if (uiManager == null)
         {
@@ -69,21 +59,18 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-        CurrentLives = Mathf.Max(0, maxLives);
-        OnLivesChanged?.Invoke(CurrentLives);
         currentState = GameState.Playing;
+        OnGameStateChanged?.Invoke(currentState);
 
         if (global::AudioManager.Instance != null)
         {
             global::AudioManager.Instance.PlayBGM();
         }
-
-        Debug.Log("Game started.");
     }
 
     /// <summary>
     /// Switches the game into Game Over mode.
-    /// Call this when time runs out, player loses, or end condition is reached.
+    /// Call this when gameplay ends and results should be shown.
     /// </summary>
     public void EndGame()
     {
@@ -93,7 +80,7 @@ public class GameManager : MonoBehaviour
         }
 
         currentState = GameState.GameOver;
-        Debug.Log("Game over.");
+        OnGameStateChanged?.Invoke(currentState);
     }
 
     /// <summary>
@@ -107,37 +94,6 @@ public class GameManager : MonoBehaviour
         }
 
         ShowResultsPanel();
-    }
-
-    /// <summary>
-    /// Applies damage to the player.
-    /// Shows the results panel when lives reach zero.
-    /// </summary>
-    public void TakeDamage(int amount)
-    {
-        if (!IsGameActive)
-        {
-            return;
-        }
-
-        if (amount <= 0)
-        {
-            return;
-        }
-
-        Debug.Log($"GameManager: Player took {amount} damage.");
-        CurrentLives -= amount;
-        if (CurrentLives < 0)
-        {
-            CurrentLives = 0;
-        }
-
-        OnLivesChanged?.Invoke(CurrentLives);
-
-        if (CurrentLives <= 0)
-        {
-            ShowResultsPanel();
-        }
     }
 
     /// <summary>
@@ -157,7 +113,6 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-        Debug.LogWarning("GameManager: UIManager not found. Falling back to EndGame without result panel.");
         EndGame();
     }
 }

@@ -52,12 +52,14 @@ public class ObjectSpawner : MonoBehaviour
     private float currentSpawnInterval;
     private float minSpawnX;
     private float maxSpawnX;
+    private Camera cachedMainCamera;
 
     private void Awake()
     {
         elapsedActiveGameTime = 0f;
         currentFallSpeed = initialFallSpeed;
         currentSpawnInterval = initialSpawnInterval;
+        cachedMainCamera = Camera.main;
         UpdateSpawnBoundsFromCamera();
 
         if (gameManager == null)
@@ -65,21 +67,12 @@ public class ObjectSpawner : MonoBehaviour
             gameManager = FindAnyObjectByType<GameManager>();
         }
 
-        if (gameManager != null)
-        {
-            Debug.Log("ObjectSpawner: GameManager found.");
-        }
-        else
-        {
-            Debug.LogWarning("ObjectSpawner: GameManager not found. Spawner will wait until one exists.");
-        }
     }
 
     private void Update()
     {
         if (gameManager == null)
         {
-            gameManager = FindAnyObjectByType<GameManager>();
             return;
         }
 
@@ -104,7 +97,6 @@ public class ObjectSpawner : MonoBehaviour
         if (spawnRoutine == null)
         {
             spawnRoutine = StartCoroutine(SpawnLoop());
-            Debug.Log("ObjectSpawner: Spawn loop started.");
         }
     }
 
@@ -114,7 +106,6 @@ public class ObjectSpawner : MonoBehaviour
         {
             StopCoroutine(spawnRoutine);
             spawnRoutine = null;
-            Debug.Log("ObjectSpawner: Spawn loop stopped.");
         }
     }
 
@@ -131,7 +122,6 @@ public class ObjectSpawner : MonoBehaviour
 
             if (gameManager == null)
             {
-                gameManager = FindAnyObjectByType<GameManager>();
                 continue;
             }
 
@@ -152,7 +142,6 @@ public class ObjectSpawner : MonoBehaviour
         GameObject prefabToSpawn = GetRandomSpawnItem();
         if (prefabToSpawn == null)
         {
-            Debug.LogWarning("ObjectSpawner: No valid weighted spawn item found. Cannot spawn items.");
             return;
         }
 
@@ -166,8 +155,6 @@ public class ObjectSpawner : MonoBehaviour
             // Apply current difficulty speed to this spawned object.
             fallingObject.fallSpeed = currentFallSpeed;
         }
-
-        Debug.Log($"ObjectSpawner: Spawned '{spawned.name}' at X={randomX:F2}, Y={spawnY:F2}.");
     }
 
     /// <summary>
@@ -175,7 +162,13 @@ public class ObjectSpawner : MonoBehaviour
     /// </summary>
     private void UpdateSpawnBoundsFromCamera()
     {
-        Camera mainCamera = Camera.main;
+        Camera mainCamera = cachedMainCamera;
+        if (mainCamera == null)
+        {
+            cachedMainCamera = Camera.main;
+            mainCamera = cachedMainCamera;
+        }
+
         if (mainCamera == null)
         {
             minSpawnX = -spawnRangeX;

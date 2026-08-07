@@ -2,7 +2,7 @@ using UnityEngine;
 
 /// <summary>
 /// Handles an obstacle interaction with the player.
-/// Applies player damage and destroys itself when hit.
+/// Applies obstacle penalty logic and destroys itself when hit.
 /// </summary>
 public class Obstacle : MonoBehaviour
 {
@@ -14,9 +14,6 @@ public class Obstacle : MonoBehaviour
     [Tooltip("Optional direct reference. If empty, this script will try to find ScoreManager automatically.")]
     public ScoreManager scoreManager;
 
-    [Tooltip("Optional direct reference. If empty, this script will try to find GameManager automatically.")]
-    public GameManager gameManager;
-
     private void Awake()
     {
         // Auto-find ScoreManager if it was not assigned in the Inspector.
@@ -25,29 +22,6 @@ public class Obstacle : MonoBehaviour
             scoreManager = FindAnyObjectByType<ScoreManager>();
         }
 
-        // Auto-find GameManager if it was not assigned in the Inspector.
-        if (gameManager == null)
-        {
-            gameManager = FindAnyObjectByType<GameManager>();
-        }
-
-        if (scoreManager != null)
-        {
-            Debug.Log("Obstacle: ScoreManager found.");
-        }
-        else
-        {
-            Debug.LogWarning("Obstacle: ScoreManager not found. Obstacle will still be destroyed on hit.");
-        }
-
-        if (gameManager != null)
-        {
-            Debug.Log("Obstacle: GameManager found.");
-        }
-        else
-        {
-            Debug.LogWarning("Obstacle: GameManager not found. Damage will not be applied on hit.");
-        }
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
@@ -61,15 +35,10 @@ public class Obstacle : MonoBehaviour
             return;
         }
 
-        // Apply one point of damage through GameManager when available.
-        if (gameManager != null)
-        {
-            gameManager.TakeDamage(1);
-        }
-
-        // Reset combo streak when the player hits an obstacle.
+        // Apply penalty points and reset combo streak on obstacle hit.
         if (scoreManager != null)
         {
+            scoreManager.SubtractScore(penaltyValue);
             scoreManager.ResetCombo();
         }
 
@@ -84,7 +53,6 @@ public class Obstacle : MonoBehaviour
             Instantiate(splashPrefab, transform.position, Quaternion.identity);
         }
 
-        Debug.Log($"Obstacle: '{name}' hit and destroyed.");
         Destroy(gameObject);
     }
 }

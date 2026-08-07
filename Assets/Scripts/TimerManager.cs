@@ -34,16 +34,6 @@ public class TimerManager : MonoBehaviour
             gameManager = FindAnyObjectByType<GameManager>();
         }
 
-        if (gameManager != null)
-        {
-            Debug.Log("TimerManager: GameManager found.");
-        }
-        else
-        {
-            Debug.LogWarning("TimerManager: GameManager not found. Timer will not count until GameManager exists.");
-        }
-
-        Debug.Log($"TimerManager: Initialized with {TimeRemaining:F1} seconds.");
     }
 
     private void Update()
@@ -55,7 +45,6 @@ public class TimerManager : MonoBehaviour
 
         if (gameManager == null)
         {
-            gameManager = FindAnyObjectByType<GameManager>();
             return;
         }
 
@@ -89,7 +78,6 @@ public class TimerManager : MonoBehaviour
         TimeRemaining = Mathf.Max(0f, totalTime);
         hasTriggeredEndGame = false;
         OnTimeChanged?.Invoke(GetFormattedTime());
-        Debug.Log($"TimerManager: Timer reset to {TimeRemaining:F1} seconds.");
     }
 
     /// <summary>
@@ -111,7 +99,6 @@ public class TimerManager : MonoBehaviour
         }
 
         hasTriggeredEndGame = true;
-        Debug.Log("TimerManager: Time is up. Ending game.");
         gameManager.HandleTimerExpired();
     }
 }

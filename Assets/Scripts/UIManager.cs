@@ -5,7 +5,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 /// <summary>
-/// Updates score/time UI and controls the Game Over panel.
+/// Updates score/time UI and controls result/rules panels.
 /// </summary>
 public class UIManager : MonoBehaviour
 {
@@ -15,9 +15,6 @@ public class UIManager : MonoBehaviour
 
     [Tooltip("UI text that displays remaining time.")]
     public TMP_Text timerText;
-
-    [Tooltip("Panel that appears when the game ends.")]
-    public GameObject gameOverPanel;
 
     [Tooltip("Exit button shown while the game is active.")]
     public GameObject exitButton;
@@ -36,12 +33,6 @@ public class UIManager : MonoBehaviour
 
     public Button infoButton;
 
-    [Tooltip("Heart UI elements that represent remaining player lives.")]
-    public GameObject[] heartImages;
-
-    [Tooltip("UI text that displays final score on the Game Over panel.")]
-    public TextMeshProUGUI finalScoreText;
-
     [SerializeField] private GameObject winPanel;
     [SerializeField] private TMP_Text winScoreText;
     [SerializeField] private GameObject fullRulesPanel;
@@ -59,7 +50,6 @@ public class UIManager : MonoBehaviour
     [Tooltip("Optional direct reference. If empty, this script will try to find GameManager automatically.")]
     public GameManager gameManager;
 
-    private bool hasShownGameOver;
     private bool miniRulesPausedGameplay;
     private Coroutine comboPopUpRoutine;
     private GameManager.GameState? lastKnownState;
@@ -93,20 +83,6 @@ public class UIManager : MonoBehaviour
             timerText = FindTextByName("TimerText");
         }
 
-        if (finalScoreText == null)
-        {
-            finalScoreText = FindTextByName("FinalScoreText");
-        }
-
-        if (gameOverPanel == null)
-        {
-            GameObject panelObject = GameObject.Find("GameOverPanel");
-            if (panelObject != null)
-            {
-                gameOverPanel = panelObject;
-            }
-        }
-
         if (scoreManager != null)
         {
             Debug.Log("UIManager: ScoreManager found.");
@@ -132,16 +108,6 @@ public class UIManager : MonoBehaviour
         else
         {
             Debug.LogWarning("UIManager: GameManager not found.");
-        }
-
-        if (gameOverPanel != null)
-        {
-            gameOverPanel.SetActive(false);
-            Debug.Log("UIManager: GameOver panel hidden at startup.");
-        }
-        else
-        {
-            Debug.LogWarning("UIManager: GameOver panel reference is missing.");
         }
 
         // Keep custom result panels hidden at startup.
@@ -200,23 +166,19 @@ public class UIManager : MonoBehaviour
         if (scoreManager != null)
         {
             scoreManager.OnScoreChanged += HandleScoreChanged;
+            scoreManager.OnComboTriggered += HandleComboTriggered;
         }
 
         if (gameManager != null)
         {
-            gameManager.OnLivesChanged += UpdateLivesUI;
-            UpdateLivesUI(gameManager.CurrentLives);
+            gameManager.OnGameStateChanged += HandleGameStateChanged;
+            HandleGameStateChanged(gameManager.CurrentState);
         }
 
         if (timerManager != null)
         {
             timerManager.OnTimeChanged += UpdateTimerUI;
             UpdateTimerUI(timerManager.GetFormattedTime());
-        }
-
-        if (scoreManager != null)
-        {
-            scoreManager.OnComboTriggered += HandleComboTriggered;
         }
     }
 
@@ -229,7 +191,7 @@ public class UIManager : MonoBehaviour
 
         if (gameManager != null)
         {
-            gameManager.OnLivesChanged -= UpdateLivesUI;
+            gameManager.OnGameStateChanged -= HandleGameStateChanged;
         }
 
         if (timerManager != null)
@@ -257,54 +219,6 @@ public class UIManager : MonoBehaviour
         {
             Time.timeScale = 1f;
             miniRulesPausedGameplay = false;
-        }
-    }
-
-    private void Update()
-    {
-        UpdateGameUI();
-    }
-
-    /// <summary>
-    /// Updates runtime UI visibility and game-over presentation.
-    /// </summary>
-    private void UpdateGameUI()
-    {
-        if (gameManager != null)
-        {
-            HandleStateSpecificPanels(gameManager.CurrentState);
-        }
-
-        // Show gameplay UI only while the game is active.
-        bool isGameActive = gameManager != null && gameManager.IsGameActive;
-
-        if (exitButton != null)
-        {
-            exitButton.SetActive(isGameActive);
-        }
-
-        if (bottomContainer != null)
-        {
-            bottomContainer.SetActive(isGameActive);
-        }
-
-        if (touchControlBar != null)
-        {
-            touchControlBar.SetActive(isGameActive);
-        }
-
-        // If the game has ended, show default Game Over UI once when no custom result panel is active.
-        if (!hasShownGameOver && gameManager != null && gameManager.CurrentState == GameManager.GameState.GameOver && !IsCustomResultPanelActive())
-        {
-            ShowGameOver();
-        }
-
-        // Keep panel hidden while game is not over.
-        if (gameManager != null && gameManager.CurrentState != GameManager.GameState.GameOver && gameOverPanel != null && gameOverPanel.activeSelf)
-        {
-            gameOverPanel.SetActive(false);
-            hasShownGameOver = false;
-            Debug.Log("UIManager: GameOver panel hidden (game is not over).");
         }
     }
 
@@ -344,32 +258,11 @@ public class UIManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Shows Game Over panel and writes final score.
-    /// </summary>
-    private void ShowGameOver()
-    {
-        hasShownGameOver = true;
-
-        if (gameOverPanel != null)
-        {
-            gameOverPanel.SetActive(true);
-        }
-
-        if (finalScoreText != null && scoreManager != null)
-        {
-            finalScoreText.text = $"Final Score: {scoreManager.CurrentScore}";
-        }
-
-        Debug.Log("UIManager: Game Over UI shown.");
-    }
-
-    /// <summary>
     /// Shows the win screen and final score, then stops active gameplay.
     /// </summary>
     public void ShowWinScreen()
     {
         DisableGameplayForResult();
-        hasShownGameOver = true;
 
         if (AudioManager.Instance != null)
         {
@@ -377,11 +270,6 @@ public class UIManager : MonoBehaviour
         }
 
         CloseMiniRulesPanel();
-
-        if (gameOverPanel != null)
-        {
-            gameOverPanel.SetActive(false);
-        }
 
         if (winPanel != null)
         {
@@ -511,27 +399,6 @@ public class UIManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Updates heart icons to match current remaining lives.
-    /// </summary>
-    private void UpdateLivesUI(int currentLives)
-    {
-        if (heartImages == null || heartImages.Length == 0)
-        {
-            return;
-        }
-
-        for (int i = 0; i < heartImages.Length; i++)
-        {
-            if (heartImages[i] == null)
-            {
-                continue;
-            }
-
-            heartImages[i].SetActive(i < currentLives);
-        }
-    }
-
-    /// <summary>
     /// Ends active gameplay and hides gameplay-only UI controls.
     /// </summary>
     private void DisableGameplayForResult()
@@ -541,19 +408,24 @@ public class UIManager : MonoBehaviour
             gameManager.EndGame();
         }
 
-        if (exitButton != null)
+        SetGameplayUIActive(false);
+    }
+
+    private void SetGameplayUIActive(bool isActive)
+    {
+        if (exitButton != null && exitButton.activeSelf != isActive)
         {
-            exitButton.SetActive(false);
+            exitButton.SetActive(isActive);
         }
 
-        if (bottomContainer != null)
+        if (bottomContainer != null && bottomContainer.activeSelf != isActive)
         {
-            bottomContainer.SetActive(false);
+            bottomContainer.SetActive(isActive);
         }
 
-        if (touchControlBar != null)
+        if (touchControlBar != null && touchControlBar.activeSelf != isActive)
         {
-            touchControlBar.SetActive(false);
+            touchControlBar.SetActive(isActive);
         }
     }
 
@@ -625,14 +497,26 @@ public class UIManager : MonoBehaviour
                 }
             }
 
+            if (currentState == GameManager.GameState.GameOver)
+            {
+                CloseMiniRulesPanel();
+            }
+
             if (infoButton != null)
             {
                 bool showInfoButton = currentState == GameManager.GameState.Playing;
                 infoButton.gameObject.SetActive(showInfoButton);
             }
 
+            SetGameplayUIActive(currentState == GameManager.GameState.Playing);
+
             lastKnownState = currentState;
         }
+    }
+
+    private void HandleGameStateChanged(GameManager.GameState newState)
+    {
+        HandleStateSpecificPanels(newState);
     }
 
     /// <summary>
@@ -663,15 +547,6 @@ public class UIManager : MonoBehaviour
         yield return new WaitForSecondsRealtime(displayDuration);
         comboPopUpPanel.SetActive(false);
         comboPopUpRoutine = null;
-    }
-
-    /// <summary>
-    /// Returns true when a custom result panel is visible.
-    /// </summary>
-    private bool IsCustomResultPanelActive()
-    {
-        bool winVisible = winPanel != null && winPanel.activeSelf;
-        return winVisible;
     }
 
     /// <summary>
