@@ -25,6 +25,8 @@ public class UIManager : MonoBehaviour
     [Tooltip("Bottom UI container shown while the game is active.")]
     public GameObject bottomContainer;
 
+    public GameObject touchControlBar;
+
     public Button infoButton;
 
     [Tooltip("Heart UI elements that represent remaining player lives.")]
@@ -167,6 +169,11 @@ public class UIManager : MonoBehaviour
             bottomContainer.SetActive(false);
         }
 
+        if (touchControlBar != null)
+        {
+            touchControlBar.SetActive(false);
+        }
+
         RefreshScoreText();
         if (timerManager != null)
         {
@@ -265,6 +272,11 @@ public class UIManager : MonoBehaviour
         if (bottomContainer != null)
         {
             bottomContainer.SetActive(isGameActive);
+        }
+
+        if (touchControlBar != null)
+        {
+            touchControlBar.SetActive(isGameActive);
         }
 
         // If the game has ended, show default Game Over UI once when no custom result panel is active.
@@ -467,6 +479,11 @@ public class UIManager : MonoBehaviour
         if (bottomContainer != null)
         {
             bottomContainer.SetActive(false);
+        }
+
+        if (touchControlBar != null)
+        {
+            touchControlBar.SetActive(false);
         }
     }
 
