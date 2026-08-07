@@ -50,6 +50,11 @@ public class Collectible : MonoBehaviour
             Debug.Log($"Collectible: Added {scoreValue} points.");
         }
 
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayGoodItemSFX();
+        }
+
         // Spawn the splash effect at the collectible position if a prefab is assigned.
         if (splashPrefab != null)
         {

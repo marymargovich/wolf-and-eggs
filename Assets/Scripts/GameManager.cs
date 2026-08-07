@@ -72,6 +72,12 @@ public class GameManager : MonoBehaviour
         CurrentLives = Mathf.Max(0, maxLives);
         OnLivesChanged?.Invoke(CurrentLives);
         currentState = GameState.Playing;
+
+        if (global::AudioManager.Instance != null)
+        {
+            global::AudioManager.Instance.PlayBGM();
+        }
+
         Debug.Log("Game started.");
     }
 

@@ -27,6 +27,13 @@ public class UIManager : MonoBehaviour
 
     public GameObject touchControlBar;
 
+    public Image musicButtonImage;
+    public Image sfxButtonImage;
+    public Sprite musicOnSprite;
+    public Sprite musicOffSprite;
+    public Sprite sfxOnSprite;
+    public Sprite sfxOffSprite;
+
     public Button infoButton;
 
     [Tooltip("Heart UI elements that represent remaining player lives.")]
@@ -179,6 +186,13 @@ public class UIManager : MonoBehaviour
         {
             UpdateTimerUI(timerManager.GetFormattedTime());
         }
+
+        UpdateAudioUI();
+    }
+
+    private void Start()
+    {
+        UpdateAudioUI();
     }
 
     private void OnEnable()
@@ -357,6 +371,11 @@ public class UIManager : MonoBehaviour
         DisableGameplayForResult();
         hasShownGameOver = true;
 
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayWinMusic();
+        }
+
         CloseMiniRulesPanel();
 
         if (gameOverPanel != null)
@@ -375,6 +394,57 @@ public class UIManager : MonoBehaviour
         }
 
         Debug.Log("UIManager: Win screen shown.");
+    }
+
+    /// <summary>
+    /// Toggles global game audio mute state.
+    /// Bind this method to the Mute button.
+    /// </summary>
+    public void ToggleMuteFromButton()
+    {
+        if (AudioManager.Instance == null)
+        {
+            Debug.LogWarning("UIManager: AudioManager not found. Cannot toggle mute.");
+            return;
+        }
+
+        bool isMuted = AudioManager.Instance.ToggleMute();
+        Debug.Log($"UIManager: Audio mute toggled. Muted = {isMuted}.");
+        UpdateAudioUI();
+    }
+
+    /// <summary>
+    /// Toggles music mute state and updates the button sprite.
+    /// Bind this method to the Music button.
+    /// </summary>
+    public void ToggleMusic()
+    {
+        if (AudioManager.Instance == null)
+        {
+            Debug.LogWarning("UIManager: AudioManager not found. Cannot toggle music.");
+            return;
+        }
+
+        bool nextMuteState = !AudioManager.Instance.IsMusicMuted;
+        AudioManager.Instance.SetMusicMute(nextMuteState);
+        UpdateAudioUI();
+    }
+
+    /// <summary>
+    /// Toggles SFX mute state and updates the button sprite.
+    /// Bind this method to the SFX button.
+    /// </summary>
+    public void ToggleSFX()
+    {
+        if (AudioManager.Instance == null)
+        {
+            Debug.LogWarning("UIManager: AudioManager not found. Cannot toggle SFX.");
+            return;
+        }
+
+        bool nextMuteState = !AudioManager.Instance.IsSFXMuted;
+        AudioManager.Instance.SetSFXMute(nextMuteState);
+        UpdateAudioUI();
     }
 
     /// <summary>
@@ -542,9 +612,17 @@ public class UIManager : MonoBehaviour
                 OpenFullRulesPanel();
             }
 
-            if (currentState == GameManager.GameState.Playing && fullRulesPanel != null)
+            if (currentState == GameManager.GameState.Playing)
             {
-                fullRulesPanel.SetActive(false);
+                if (fullRulesPanel != null)
+                {
+                    fullRulesPanel.SetActive(false);
+                }
+
+                if (AudioManager.Instance != null)
+                {
+                    AudioManager.Instance.PlayBGM();
+                }
             }
 
             if (infoButton != null)
@@ -594,6 +672,33 @@ public class UIManager : MonoBehaviour
     {
         bool winVisible = winPanel != null && winPanel.activeSelf;
         return winVisible;
+    }
+
+    /// <summary>
+    /// Syncs audio button sprites with current mute states.
+    /// </summary>
+    private void UpdateAudioUI()
+    {
+        bool isMusicMuted = AudioManager.Instance != null && AudioManager.Instance.IsMusicMuted;
+        bool isSfxMuted = AudioManager.Instance != null && AudioManager.Instance.IsSFXMuted;
+
+        if (musicButtonImage != null)
+        {
+            Sprite musicSprite = isMusicMuted ? musicOffSprite : musicOnSprite;
+            if (musicSprite != null)
+            {
+                musicButtonImage.sprite = musicSprite;
+            }
+        }
+
+        if (sfxButtonImage != null)
+        {
+            Sprite sfxSprite = isSfxMuted ? sfxOffSprite : sfxOnSprite;
+            if (sfxSprite != null)
+            {
+                sfxButtonImage.sprite = sfxSprite;
+            }
+        }
     }
 
     /// <summary>

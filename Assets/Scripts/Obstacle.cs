@@ -73,6 +73,11 @@ public class Obstacle : MonoBehaviour
             scoreManager.ResetCombo();
         }
 
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayBadItemSFX();
+        }
+
         // Spawn the splash effect at the obstacle position if a prefab is assigned.
         if (splashPrefab != null)
         {
