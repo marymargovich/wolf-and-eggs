@@ -391,11 +391,12 @@ public class UIManager : MonoBehaviour
 
     /// <summary>
     /// Exits active gameplay and loads the initial scene.
+    /// Uses async loading for WebGL compatibility.
     /// </summary>
     public void ExitToMainMenu()
     {
         Time.timeScale = 1f;
-        SceneManager.LoadScene(0);
+        SceneManager.LoadSceneAsync(0);
     }
 
     /// <summary>
