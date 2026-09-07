@@ -33,6 +33,9 @@ public class UIManager : MonoBehaviour
 
     public Button infoButton;
 
+    [Tooltip("Heart UI elements that represent remaining player lives (up to 5).")]
+    public GameObject[] heartImages;
+
     [SerializeField] private GameObject winPanel;
     [SerializeField] private TMP_Text winScoreText;
     [SerializeField] private GameObject fullRulesPanel;
@@ -51,6 +54,7 @@ public class UIManager : MonoBehaviour
     public GameManager gameManager;
 
     private bool miniRulesPausedGameplay;
+    private bool hasShownGameOver;
     private Coroutine comboPopUpRoutine;
     private GameManager.GameState? lastKnownState;
 
@@ -153,6 +157,39 @@ public class UIManager : MonoBehaviour
             UpdateTimerUI(timerManager.GetFormattedTime());
         }
 
+        // Initialize lives UI in Awake
+        if (gameManager != null)
+        {
+            Debug.Log("UIManager.Awake: Initializing lives UI. Current lives: " + gameManager.CurrentLives + ", Max lives: " + gameManager.maxLives);
+            
+            // Log initial state of heart images
+            if (heartImages != null)
+            {
+                Debug.Log("UIManager.Awake: heartImages array has " + heartImages.Length + " elements");
+                for (int i = 0; i < heartImages.Length; i++)
+                {
+                    if (heartImages[i] != null)
+                    {
+                        Debug.Log("  heartImages[" + i + "]: " + heartImages[i].name + " = " + (heartImages[i].activeSelf ? "ACTIVE" : "INACTIVE"));
+                    }
+                    else
+                    {
+                        Debug.LogWarning("  heartImages[" + i + "] is NULL!");
+                    }
+                }
+            }
+            else
+            {
+                Debug.LogWarning("UIManager.Awake: heartImages is NULL!");
+            }
+            
+            UpdateLivesUI(gameManager.CurrentLives);
+        }
+        else
+        {
+            Debug.LogWarning("UIManager.Awake: GameManager not found yet. Lives UI will be initialized in OnEnable.");
+        }
+
         UpdateAudioUI();
     }
 
@@ -161,8 +198,94 @@ public class UIManager : MonoBehaviour
         UpdateAudioUI();
     }
 
+    private void Update()
+    {
+        UpdateGameUI();
+    }
+
+    /// <summary>
+    /// Updates runtime UI visibility and game-over presentation.
+    /// </summary>
+    private void UpdateGameUI()
+    {
+        if (gameManager == null)
+        {
+            return;
+        }
+
+        // Show gameplay UI only while the game is active.
+        bool isGameActive = gameManager.IsGameActive;
+
+        if (exitButton != null)
+        {
+            exitButton.SetActive(isGameActive);
+        }
+
+        if (bottomContainer != null)
+        {
+            bottomContainer.SetActive(isGameActive);
+        }
+
+        if (touchControlBar != null)
+        {
+            touchControlBar.SetActive(isGameActive);
+        }
+
+        // If the game has ended, show default Game Over UI once when no custom result panel is active.
+        if (!hasShownGameOver && gameManager.CurrentState == GameManager.GameState.GameOver && !IsCustomResultPanelActive())
+        {
+            // If player still has lives, show win screen (timer expired). Otherwise show game over.
+            if (gameManager.CurrentLives > 0)
+            {
+                ShowWinScreen();
+            }
+            else
+            {
+                ShowGameOver();
+            }
+        }
+
+        // Keep panels hidden while game is not over.
+        if (gameManager.CurrentState != GameManager.GameState.GameOver && winPanel != null && winPanel.activeSelf)
+        {
+            winPanel.SetActive(false);
+            hasShownGameOver = false;
+        }
+    }
+
+    private bool IsCustomResultPanelActive()
+    {
+        bool winVisible = winPanel != null && winPanel.activeSelf;
+        return winVisible;
+    }
+
+    private void ShowGameOver()
+    {
+        hasShownGameOver = true;
+        Debug.Log("UIManager: Game Over - All lives lost. Showing loss screen.");
+        
+        // For now, show the same win panel but with a different message
+        // In a full implementation, you'd have a separate loss panel
+        if (winPanel != null)
+        {
+            DisableGameplayForResult();
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlayBadItemSFX();
+            }
+            winPanel.SetActive(true);
+        }
+        
+        if (winScoreText != null && scoreManager != null)
+        {
+            winScoreText.text = scoreManager.CurrentScore.ToString();
+        }
+    }
+
     private void OnEnable()
     {
+        hasShownGameOver = false;  // Reset when UIManager is enabled
+        
         if (scoreManager != null)
         {
             scoreManager.OnScoreChanged += HandleScoreChanged;
@@ -172,7 +295,14 @@ public class UIManager : MonoBehaviour
         if (gameManager != null)
         {
             gameManager.OnGameStateChanged += HandleGameStateChanged;
+            gameManager.OnLivesChanged += UpdateLivesUI;
+            Debug.Log("UIManager.OnEnable: Subscribed to GameManager events. Current lives: " + gameManager.CurrentLives);
             HandleGameStateChanged(gameManager.CurrentState);
+            UpdateLivesUI(gameManager.CurrentLives);
+        }
+        else
+        {
+            Debug.LogError("UIManager.OnEnable: gameManager is NULL!");
         }
 
         if (timerManager != null)
@@ -192,6 +322,7 @@ public class UIManager : MonoBehaviour
         if (gameManager != null)
         {
             gameManager.OnGameStateChanged -= HandleGameStateChanged;
+            gameManager.OnLivesChanged -= UpdateLivesUI;
         }
 
         if (timerManager != null)
@@ -258,10 +389,64 @@ public class UIManager : MonoBehaviour
     }
 
     /// <summary>
+    /// Updates the heart UI elements to show remaining lives.
+    /// Deactivates hearts from right to left as lives decrease.
+    /// </summary>
+    private void UpdateLivesUI(int currentLives)
+    {
+        Debug.Log("UIManager.UpdateLivesUI called with " + currentLives + " lives. heartImages = " + (heartImages == null ? "NULL" : heartImages.Length.ToString()));
+        
+        if (heartImages == null || heartImages.Length == 0)
+        {
+            Debug.LogError("UIManager: heartImages array is null or empty! Cannot update lives UI.");
+            return;
+        }
+
+        Debug.Log("UIManager: Updating " + heartImages.Length + " heart images. Showing " + currentLives + " hearts.");
+        
+        for (int i = 0; i < heartImages.Length; i++)
+        {
+            if (heartImages[i] == null)
+            {
+                Debug.LogWarning("UIManager: heartImages[" + i + "] is NULL!");
+                continue;
+            }
+
+            bool shouldBeActive = i < currentLives;
+            bool wasActive = heartImages[i].activeSelf;
+            
+            // First try SetActive (if hearts are separate GameObjects)
+            heartImages[i].SetActive(shouldBeActive);
+            
+            // Also update Image/CanvasGroup alpha as fallback (if hearts are UI elements)
+            Image heartImage = heartImages[i].GetComponent<Image>();
+            if (heartImage != null)
+            {
+                Color color = heartImage.color;
+                color.a = shouldBeActive ? 1f : 0.3f;
+                heartImage.color = color;
+                Debug.Log("UIManager: heartImages[" + i + "] (" + heartImages[i].name + ") Image alpha set to " + color.a);
+            }
+            
+            CanvasGroup canvasGroup = heartImages[i].GetComponent<CanvasGroup>();
+            if (canvasGroup != null)
+            {
+                canvasGroup.alpha = shouldBeActive ? 1f : 0.3f;
+                Debug.Log("UIManager: heartImages[" + i + "] (" + heartImages[i].name + ") CanvasGroup alpha set to " + canvasGroup.alpha);
+            }
+            
+            Debug.Log("UIManager: heartImages[" + i + "] (" + heartImages[i].name + ") was " + wasActive + ", now " + shouldBeActive);
+        }
+
+        Debug.Log("UIManager: Lives UI updated to show " + currentLives + "/" + heartImages.Length + " hearts.");
+    }
+
+    /// <summary>
     /// Shows the win screen and final score, then stops active gameplay.
     /// </summary>
     public void ShowWinScreen()
     {
+        Debug.Log("UIManager.ShowWinScreen() called!");
         DisableGameplayForResult();
 
         if (AudioManager.Instance != null)
@@ -273,7 +458,12 @@ public class UIManager : MonoBehaviour
 
         if (winPanel != null)
         {
+            Debug.Log("UIManager: Showing winPanel");
             winPanel.SetActive(true);
+        }
+        else
+        {
+            Debug.LogWarning("UIManager: winPanel is NULL!");
         }
 
         if (winScoreText != null && scoreManager != null)

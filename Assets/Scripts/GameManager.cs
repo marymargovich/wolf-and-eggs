@@ -21,10 +21,26 @@ public class GameManager : MonoBehaviour
 
     [SerializeField] private UIManager uiManager;
 
+    [Tooltip("Maximum number of lives at the start of each game.")]
+    public int maxLives = 5;
+
+    private int currentLives;
+
     /// <summary>
     /// Public read-only access to the current game state.
     /// </summary>
     public GameState CurrentState => currentState;
+
+    /// <summary>
+    /// Current remaining lives. Read-only from outside this class.
+    /// </summary>
+    public int CurrentLives => currentLives;
+
+    /// <summary>
+    /// Optional event fired whenever lives change.
+    /// int argument = current remaining lives.
+    /// </summary>
+    public System.Action<int> OnLivesChanged;
 
     /// <summary>
     /// Optional event fired whenever game state changes.
@@ -41,6 +57,7 @@ public class GameManager : MonoBehaviour
     {
         // Ensure the game starts in the Start state when the scene loads.
         currentState = GameState.Start;
+        currentLives = maxLives;
 
         if (uiManager == null)
         {
@@ -59,6 +76,8 @@ public class GameManager : MonoBehaviour
             return;
         }
 
+        currentLives = Mathf.Max(1, maxLives);
+        OnLivesChanged?.Invoke(currentLives);
         currentState = GameState.Playing;
         OnGameStateChanged?.Invoke(currentState);
 
@@ -114,5 +133,44 @@ public class GameManager : MonoBehaviour
         }
 
         EndGame();
+    }
+
+    /// <summary>
+    /// Applies damage to the player (loses one life).
+    /// Ends the game when lives reach zero.
+    /// </summary>
+    public void TakeDamage(int amount)
+    {
+        Debug.Log($"GameManager.TakeDamage({amount}) called. IsGameActive={IsGameActive}");
+        
+        if (!IsGameActive)
+        {
+            Debug.LogWarning($"GameManager: TakeDamage called but game is not active (State={currentState}). Ignoring.");
+            return;
+        }
+
+        if (amount <= 0)
+        {
+            Debug.LogWarning($"GameManager: TakeDamage called with invalid amount {amount}. Ignoring.");
+            return;
+        }
+
+        Debug.Log($"GameManager: Player took {amount} damage. Lives before: {currentLives}");
+        currentLives -= amount;
+
+        if (currentLives < 0)
+        {
+            currentLives = 0;
+        }
+
+        Debug.Log($"GameManager: Invoking OnLivesChanged with {currentLives} lives. Listeners: {(OnLivesChanged == null ? 0 : OnLivesChanged.GetInvocationList().Length)}");
+        OnLivesChanged?.Invoke(currentLives);
+        Debug.Log($"GameManager: Lives remaining = {currentLives}.");
+
+        if (currentLives <= 0)
+        {
+            Debug.Log("GameManager: Lives reached 0. Calling EndGame().");
+            EndGame();
+        }
     }
 }
