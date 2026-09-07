@@ -3,7 +3,7 @@
 A fast-paced arcade-style casual game built with Unity. Catch falling treasures while avoiding obstacles with your 5 hearts in a thrilling 60-second challenge!
 
 **Status**: ✅ **v1.0 STABLE** - Fully tested & production-ready  
-**WebGL build:** Not included in this repository yet. See [Running the WebGL Build](#running-the-webgl-build) to create and deploy it.
+**Play online:** [Little Dragon WebGL Build](https://marymargovich.github.io/wolf-and-eggs/)
 
 ---
 
@@ -85,6 +85,7 @@ wolf and eggs/
 │   ├── Resources/               # Runtime-loaded assets
 │   └── TextMesh Pro/            # UI font assets
 ├── ProjectSettings/             # Unity project configuration
+├── docs/                        # Published WebGL build
 └── README.md                    # This file
 ```
 
@@ -146,14 +147,9 @@ wolf and eggs/
 
 ### Running the WebGL Build
 
-The WebGL build is not currently included in this repository. To create it:
+The WebGL build is published through GitHub Pages. Open the [online build](https://marymargovich.github.io/wolf-and-eggs/) to play in a modern browser.
 
-1. Open the project in Unity 6000.5.4f1 or a compatible version
-2. Select **File → Build Profiles → Web → WebGL**
-3. Build into a `Little Dragon/` directory
-4. Deploy that directory to a web server or GitHub Pages
-
-Once deployed, add the public URL above. Opening a WebGL build directly from the file system may not work because browsers restrict local file access.
+To create a new build, select **File → Build Profiles → Web → WebGL** in Unity and build into the `docs/` directory. GitHub Pages serves the contents of `docs/` from the `main` branch.
 
 ---
 
@@ -190,7 +186,7 @@ MainMenu or Playing (restart)
 ✅ **Progressive Difficulty**: Challenge scales over 60 seconds  
 ✅ **Combo System**: Bonus points for consecutive catches (5 in a row = +100)  
 ✅ **Mobile-Optimized**: Touch controls for phones & tablets  
-✅ **WebGL Ready**: Can be built for browser deployment
+✅ **Browser Playable**: WebGL build is published through GitHub Pages
 ✅ **Visual Feedback**: Splash effects on pickups & collisions  
 ✅ **Instant State Transitions**: Win/GameOver screens with proper audio  
 ✅ **Clean Restart**: "Play Again" button resets all state & music  
@@ -216,7 +212,7 @@ All features verified working:
 - ✅ Collision detection accurate
 - ✅ Score calculation correct
 - ✅ No console errors or warnings
-- ✅ WebGL build configuration documented
+- ✅ WebGL build runs through GitHub Pages
 
 ---
 
