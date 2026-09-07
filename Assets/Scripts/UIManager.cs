@@ -269,10 +269,14 @@ public class UIManager : MonoBehaviour
         if (winPanel != null)
         {
             DisableGameplayForResult();
+            
+            // Stop BGM and play win music to signal game end
             if (AudioManager.Instance != null)
             {
-                AudioManager.Instance.PlayBadItemSFX();
+                AudioManager.Instance.PlayWinMusic();
+                Debug.Log("UIManager: ShowGameOver() - Playing win music");
             }
+            
             winPanel.SetActive(true);
         }
         
@@ -571,21 +575,39 @@ public class UIManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Reloads the currently active scene.
+    /// Reloads the currently active scene and restarts gameplay.
     /// </summary>
     public void RestartGame()
     {
         Time.timeScale = 1f;
+        hasShownGameOver = false;
+        
+        // Reset audio to ensure BGM starts fresh on restart
+        if (AudioManager.Instance != null)
+        {
+            Debug.Log("UIManager: RestartGame() - Resetting audio for fresh start");
+            AudioManager.Instance.PlayBGM();
+        }
+        
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
     /// <summary>
-    /// Exits active gameplay and loads the initial scene.
+    /// Exits active gameplay and loads the initial scene (Main Menu).
     /// Uses async loading for WebGL compatibility.
     /// </summary>
     public void ExitToMainMenu()
     {
         Time.timeScale = 1f;
+        hasShownGameOver = false;
+        
+        // Reset audio state for menu
+        if (AudioManager.Instance != null)
+        {
+            Debug.Log("UIManager: ExitToMainMenu() - Stopping game music");
+            AudioManager.Instance.PlayBGM();  // Will stop current and reset to BGM
+        }
+        
         SceneManager.LoadSceneAsync(0);
     }
 
