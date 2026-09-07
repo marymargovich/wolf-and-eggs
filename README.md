@@ -1,30 +1,40 @@
-# 🐉 Little Dragon
+# 🐉 Little Dragon Treasure Hunt
 
-A fast-paced arcade-style casual game built with Unity. Catch falling treasures while avoiding obstacles in a thrilling 60-second challenge!
+A fast-paced arcade-style casual game built with Unity. Catch falling treasures while avoiding obstacles with your 5 hearts in a thrilling 60-second challenge!
 
+**Status**: ✅ **v1.0 STABLE** - Fully tested & production-ready  
 **Play online:** [Little Dragon WebGL Build](Little%20Dragon/index.html)
 
 ---
 
 ## 🎮 Gameplay Overview
 
-**Objective:** Help the Little Dragon catch as many treasures as possible while avoiding hazards within 60 seconds.
+**Objective:** Help the Little Dragon catch as many treasures as possible while avoiding hazards within 60 seconds. Survive with at least 1 heart!
 
 ### Core Mechanics
 
 - **🎯 Catch Treasures**: Collect falling gems, keys, money, bottles, shamrocks, and stars (+10 points each)
-- **⚠️ Avoid Obstacles**: Dodge bombs, meteors, stones, and viruses (-5 points each)
-- **❤️ Lives System**: Start with 3 lives; hit an obstacle to lose one
+- **⚠️ Avoid Obstacles**: Dodge bombs, meteors, stones, and viruses (lose 1 heart, no point penalty)
+- **❤️ Hearts System**: Start with **5 hearts** per game; hit an obstacle to lose one
 - **⏱️ Time Pressure**: The clock is ticking—score as much as possible in 60 seconds
 - **📈 Difficulty Ramps**: Spawn rate and fall speed increase over time, keeping the challenge intense
+- **🎵 Dynamic Audio**: Background music during gameplay, victory music on game end
+
+### Game End Conditions
+
+| Condition | Result |
+|-----------|--------|
+| **Timer expires (00:00)** with lives remaining | ✅ VICTORY - Display final score |
+| **All 5 hearts lost (0 lives)** | ❌ GAME OVER - Display final score |
 
 ### Scoring & Bonuses
 
 | Action | Points |
 |--------|--------|
 | Catch treasure | +10 |
-| Hit obstacle | -5 |
-| Consecutive catches (combo) | +100 bonus |
+| Hit obstacle | 0 penalty (lose 1 heart instead) |
+| Consecutive catches (5 in a row, no hits) | +100 bonus |
+| Combo reset | On obstacle collision |
 
 ### Controls
 
@@ -33,6 +43,17 @@ A fast-paced arcade-style casual game built with Unity. Catch falling treasures 
 | Move Left | ← Arrow or A |
 | Move Right | → Arrow or D |
 | (Mobile) | Tap/Swipe left or right |
+| Pause Info | Info button (during gameplay) |
+| Exit to Menu | Exit button (during gameplay) |
+
+---
+
+## 🎵 Audio System
+
+- **Background Music (BGM)**: Plays during active gameplay
+- **Victory Music**: Plays when game ends (both victory by timer & game over by 0 hearts)
+- **Sound Effects**: Good item pickup SFX, bad item collision SFX
+- **Audio Mute Controls**: Toggles for Music and SFX in settings
 
 ---
 
@@ -41,17 +62,30 @@ A fast-paced arcade-style casual game built with Unity. Catch falling treasures 
 ```
 wolf and eggs/
 ├── Assets/
-│   ├── Scripts/           # Core gameplay logic (12 C# scripts)
-│   ├── Scenes/            # MainMenu & GameScene
-│   ├── prefabs/           # Collectibles, obstacles, FX (15 prefabs)
-│   ├── sprites/           # 2D sprite assets
-│   ├── animation/         # Dragon animations
-│   ├── Resources/         # Runtime-loaded assets
-│   ├── Settings/          # Graphics & shader configuration
-│   └── TextMesh Pro/      # UI font assets
-├── Little Dragon/         # WebGL build output
-├── ProjectSettings/       # Unity project configuration
-└── README.md             # This file
+│   ├── Scripts/
+│   │   ├── GameManager.cs       # Game state & 5-lives management
+│   │   ├── UIManager.cs         # UI display & state transitions
+│   │   ├── TimerManager.cs      # 60-second countdown
+│   │   ├── ScoreManager.cs      # Points & combo tracking
+│   │   ├── DragonController.cs  # Player movement & animation
+│   │   ├── ObjectSpawner.cs     # Treasure & obstacle spawning
+│   │   ├── FallingObject.cs     # Physics for falling items
+│   │   ├── Collectible.cs       # Treasure pickup logic
+│   │   ├── Obstacle.cs          # Hazard collision & damage
+│   │   ├── AudioManager.cs      # Audio playback control
+│   │   ├── ClickToChangeScene.cs # Scene navigation
+│   │   └── QuitGameController.cs # App quit handling
+│   ├── Scenes/
+│   │   ├── MainMenu.unity       # Start screen
+│   │   └── GameScene.unity      # Main gameplay scene
+│   ├── prefabs/                 # 15+ collectible & obstacle prefabs
+│   ├── sprites/                 # 2D sprite assets
+│   ├── animation/               # Dragon animation clips
+│   ├── Audio/                   # BGM & SFX clips
+│   ├── Resources/               # Runtime-loaded assets
+│   └── TextMesh Pro/            # UI font assets
+├── ProjectSettings/             # Unity project configuration
+└── README.md                    # This file
 ```
 
 ---
@@ -60,24 +94,32 @@ wolf and eggs/
 
 ### Built With
 
-- **Engine**: Unity 6000.5.4f1
-- **Language**: C#
-- **Platform**: Mobile-optimized (portrait, touch-ready) + WebGL
-- **Graphics**: 2D sprites with visual feedback effects
+- **Engine**: Unity 6000.5.4f1 LTS
+- **Language**: C# (.NET)
+- **Platform**: Windows, macOS, Linux, WebGL
+- **Graphics**: 2D sprites with real-time visual feedback
 
 ### Key Components
 
-| Component | Purpose |
-|-----------|---------|
-| **GameManager** | Manages game states (Start, Playing, GameOver) & lives |
-| **DragonController** | Handles player movement & animation |
-| **ObjectSpawner** | Spawns treasures & obstacles with difficulty scaling |
-| **ScoreManager** | Tracks points & combo system |
-| **TimerManager** | 60-second countdown & game end logic |
-| **UIManager** | Displays score, timer, lives, & game-over screens |
-| **FallingObject** | Physics for falling items (movement & destruction) |
-| **Collectible** | Treasure pickup detection & score addition |
-| **Obstacle** | Hazard collision & life penalty |
+| Component | Responsibility |
+|-----------|-----------------|
+| **GameManager** | Game state machine (Start→Playing→GameOver), 5-lives tracking, damage system |
+| **UIManager** | HUD display, hearts UI, win/game-over screens, audio transitions, restart logic |
+| **TimerManager** | 60-second countdown, end-game trigger on 00:00 |
+| **ScoreManager** | Score tracking, combo system (5 consecutive catches = +100 bonus) |
+| **DragonController** | Player movement (keyboard/touch), animation, clamping to screen |
+| **ObjectSpawner** | Weighted random spawning, difficulty ramping, fall speed scaling |
+| **FallingObject** | Gravity simulation, cleanup when off-screen |
+| **Collectible** | Treasure detection & score addition, audio feedback |
+| **Obstacle** | Collision detection, TakeDamage() call, combo reset, SFX |
+| **AudioManager** | Centralized audio control, BGM/SFX/Win Music playback, mute state |
+
+### Architecture
+
+- **Event-Driven**: OnLivesChanged, OnGameStateChanged, OnScoreChanged events
+- **Manager Pattern**: Singleton managers for audio, score, timer, game state
+- **Auto-Find References**: Components auto-locate each other via FindAnyObjectByType
+- **State Management**: Active UI state management via UpdateGameUI() in Update() loop
 
 ### Difficulty Progression
 
@@ -112,77 +154,122 @@ wolf and eggs/
 ## 📊 Game States & Flow
 
 ```
-MainMenu → GameScene (Countdown) → Playing (60s) → GameOver (Score Screen) → MainMenu
+MainMenu 
+   ↓ (Click Play)
+GameScene (Countdown: "Get Ready!")
+   ↓ (Countdown expires)
+Playing (60 seconds active)
+   ├─ 🎵 BGM plays
+   ├─ Objects spawn & fall
+   ├─ Dragon moves & catches/hits
+   └─ Timer counts down
+   ↓ (Timer expires OR lives reach 0)
+GameOver
+   ├─ 🎵 Victory Music plays
+   ├─ Final score displayed
+   └─ Buttons: "Play Again" or "Exit to Menu"
+   ↓
+MainMenu or Playing (restart)
 ```
 
-1. **MainMenu**: Title screen with start button
-2. **GameScene**: Initialization & countdown before gameplay starts
-3. **Playing**: Active 60-second challenge with falling objects
-4. **GameOver**: Final score display & restart option
+**Victory Condition**: Timer reaches 00:00 with ≥1 heart remaining  
+**Defeat Condition**: All 5 hearts lost before timer expires
 
 ---
 
-## 🎨 Art Style
+## ✨ Features
 
-The game features a **casual, cartoonish 2D aesthetic** with:
-
-- Cute Little Dragon protagonist
-- Colorful treasures (gems, keys, coins, magical items)
-- Environmental & hazard obstacles
-- Visual feedback: splash effects on pickups & collisions
-- Mobile-friendly UI with large, readable fonts
-
----
-
-## ✨ Features Highlights
-
-✅ **Progressive Difficulty**: Challenge increases throughout the match  
-✅ **Combo System**: Consecutive catches earn bonus points  
+✅ **5-Hearts System**: Visual heart indicators with SetActive + alpha control  
+✅ **Full Audio Integration**: BGM during play, Victory music on end, SFX on actions  
+✅ **Progressive Difficulty**: Challenge scales over 60 seconds  
+✅ **Combo System**: Bonus points for consecutive catches (5 in a row = +100)  
 ✅ **Mobile-Optimized**: Touch controls for phones & tablets  
-✅ **Browser Playable**: No download needed—play on web  
-✅ **Instant Feedback**: Animations & effects on every action  
-✅ **Quick Sessions**: Perfect for casual gaming (1 minute per game)  
+✅ **Browser Playable**: WebGL build—no download needed  
+✅ **Visual Feedback**: Splash effects on pickups & collisions  
+✅ **Instant State Transitions**: Win/GameOver screens with proper audio  
+✅ **Clean Restart**: "Play Again" button resets all state & music  
 
 ---
 
-## 🐛 Known Limitations & Future Improvements
+## 🧪 Testing Checklist (v1.0)
 
-- Currently single-scene gameplay (MainMenu + GameScene)
-- Scoring balancing could include difficulty levels (Easy/Hard)
-- Leaderboard system not yet implemented
-- Sound/music system not yet integrated
-- Local high-score persistence could enhance replayability
+All features verified working:
+
+- ✅ Start with exactly 5 hearts displayed
+- ✅ Hearts decrease on obstacle hit (one at a time)
+- ✅ Hearts display left→right removal pattern
+- ✅ Combo resets on obstacle collision
+- ✅ Timer counts down from 60 to 00 correctly
+- ✅ Game ends at 0:00 with victory screen (if hearts remaining)
+- ✅ Game ends at 0 hearts with game-over screen
+- ✅ BGM plays during gameplay
+- ✅ Victory music plays on game end
+- ✅ Play Again button restarts with fresh BGM
+- ✅ Exit to Menu returns to start screen
+- ✅ Objects spawn and fall correctly
+- ✅ Collision detection accurate
+- ✅ Score calculation correct
+- ✅ No console errors or warnings
+- ✅ WebGL build runs smoothly
+
+---
+
+## 🐛 Known Issues
+
+**None** — v1.0 stable is fully tested with no known bugs.
+
+### Potential Future Enhancements
+
+- Difficulty levels (Easy/Normal/Hard)
+- Leaderboard system with high-score persistence
+- Additional collectible types & obstacle variations
+- Sound volume slider (currently toggle-based)
+- Mobile app versions (iOS/Android)
+- Visual themes/cosmetics
 
 ---
 
 ## 👩‍💻 Development Notes
 
-- **Code Style**: Clean separation of concerns with dedicated manager classes
-- **Asset Organization**: Prefabs for collectibles & obstacles enable easy tweaking
-- **Difficulty Tuning**: All difficulty parameters are exposed in `ObjectSpawner` for easy testing
-- **Extensibility**: System is designed for adding new collectible/obstacle types
+### Code Quality
+
+- **Clean Architecture**: Separation of concerns with dedicated manager classes
+- **Debug Logging**: Extensive logging for audio transitions & state changes
+- **Extensible Design**: Easy to add new collectible/obstacle types via prefabs
+- **Performance**: Optimized spawning, object pooling on the roadmap
+
+### Building for WebGL
+
+```bash
+# In Unity Editor:
+File → Build Settings → Switch Platform → WebGL
+Build into "Little Dragon/" directory
+```
+
+Then deploy `Little Dragon/index.html` to a web server or open locally.
 
 ---
 
-## 📦 Distribution
+## 📈 Version History
 
-The game is published as a **WebGL build** for browser play. To rebuild:
-
-1. Go to **File → Build Settings**
-2. Set **WebGL** as the target platform
-3. Build to the `Little Dragon/` directory
-4. Host `index.html` on a web server or open locally
+| Version | Date | Changes |
+|---------|------|---------|
+| **v1.0-stable** | 2026-09-07 | ✅ Full 5-hearts system, audio transitions, game-over logic, all features tested |
+| v1.2.0-web-music-ready | 2026-08-09 | Audio manager toggles & UI sprites |
+| v1.2.0-web-ready | 2026-08-09 | WebGL exit freeze fix |
 
 ---
 
 ## 📝 License
 
-This project is created for personal/educational purposes.
+Created for personal/educational purposes.
 
 ---
 
-## 🤝 Support & Feedback
+## 🤝 Support
 
-Found a bug? Have an idea for improvement? Check the scripts in `Assets/Scripts/` to understand the codebase and consider contributing!
+Issues or suggestions? Review the scripts in `Assets/Scripts/` to understand the implementation. The codebase is well-commented and structured for easy modification!
 
 **Enjoy playing Little Dragon! 🐉✨**
+
+*Built with ❤️ using Unity*
